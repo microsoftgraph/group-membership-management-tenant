@@ -1,0 +1,190 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+name: $(major).$(minor).$(Date:yyMM).$(Rev:r)
+
+resources:
+  repositories:
+  - repository: group-membership-management
+    type: git
+    name: <ADO-PROJECT>/<ADO-GMM-PUBLIC-REPOSITORY>
+
+trigger:
+- develop
+- master
+- main
+- users/*
+
+pool:
+  vmImage: "windows-latest"
+
+variables:
+  "major": '2'
+  "minor": '0'
+  "BuildConfiguration": 'debug'
+  "SolutionAbbreviation": 'gmm'
+  disable.coverage.autogenerate: 'true'
+
+stages:
+
+- template: build-services.yml@group-membership-management
+  parameters:
+    repoToCheckout: group-membership-management
+    checkoutPath: '$(Build.BuildNumber)'
+
+- template: yaml/build-functionapps.yml@group-membership-management
+  parameters:
+    dependsOn: Build_Common
+    condition: succeeded('Build_Common')
+    repoToCheckout: group-membership-management
+    checkoutPath: '$(Build.BuildNumber)'
+    functionApps:
+    - function:
+       name: 'JobTrigger'
+       coverageThreshold: 89
+    - function:
+       name: 'GraphUpdater'
+       coverageThreshold: 77
+    - function:
+       name: 'SecurityGroup'
+       coverageThreshold: 94
+    - function:
+       name: 'AzureTableBackup'
+       coverageThreshold: 95
+    - function:
+       name: 'JobScheduler'
+       coverageThreshold: 60
+    - function:
+       name: 'MembershipAggregator'
+       coverageThreshold: 85
+
+- template: yaml/copy-parameter-files.yml
+  parameters:
+    functionApps:
+    - name: 'JobTrigger'
+    - name: 'GraphUpdater'
+    - name: 'SecurityGroup'
+    - name: 'AzureTableBackup'
+    - name: 'JobScheduler'
+    - name: 'MembershipAggregator'
+
+- template: yaml/deploy-pipeline.yml
+  parameters:
+    solutionAbbreviation: '$(SolutionAbbreviation)'
+    environmentAbbreviation: 'int'
+    tenantId: $(tenantId)
+    subscriptionId: $(subscriptionId_nonprod)
+    keyVaultReaders: $(keyVaultReaders_nonprod)
+    location: $(location)
+    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-int'
+    dependsOn:
+    - Build_Common
+    - Build_CopyParameters
+    stageName: 'NonProd_int'
+    functionApps:
+    - function:
+       name: 'GraphUpdater'
+    - function:
+       name: 'MembershipAggregator'
+       dependsOn:
+       - 'GraphUpdater'
+    - function:
+       name: 'SecurityGroup'
+       dependsOn:
+       - 'MembershipAggregator'
+    - function:
+       name: 'AzureTableBackup'
+    - function:
+       name: 'JobScheduler'
+    - function:
+       name: 'JobTrigger'
+       dependsOn:
+       - 'SecurityGroup'
+    condition: |
+      and(
+        succeeded('Build_Common'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/develop'),
+        in(variables['Build.Reason'], 'IndividualCI', 'Manual')
+      )
+
+- template: yaml/deploy-pipeline.yml
+  parameters:
+    solutionAbbreviation: '$(SolutionAbbreviation)'
+    environmentAbbreviation: 'ua'
+    tenantId: $(tenantId)
+    subscriptionId: $(subscriptionId_nonprod)
+    keyVaultReaders: $(keyVaultReaders_nonprod)
+    location: $(location)
+    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-ua'
+    dependsOn:
+    - Build_Common
+    - Build_CopyParameters
+    stageName: 'NonProd_ua'
+    functionApps:
+    - function:
+       name: 'GraphUpdater'
+    - function:
+       name: 'MembershipAggregator'
+       dependsOn:
+       - 'GraphUpdater'
+    - function:
+       name: 'SecurityGroup'
+       dependsOn:
+       - 'MembershipAggregator'
+    - function:
+       name: 'AzureTableBackup'
+    - function:
+       name: 'JobScheduler'
+    - function:
+       name: 'JobTrigger'
+       dependsOn:
+       - 'SecurityGroup'
+    condition: |
+      and(
+          succeeded('Build_Common'),
+          in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main'),
+          in(variables['Build.Reason'], 'IndividualCI', 'Manual')
+      )
+
+- template: yaml/deploy-pipeline.yml
+  parameters:
+    solutionAbbreviation: '$(SolutionAbbreviation)'
+    environmentAbbreviation: 'prod9'
+    tenantId: $(tenantId)
+    subscriptionId: $(subscriptionId_prod)
+    keyVaultReaders: $(keyVaultReaders_prod)
+    location: $(location)
+    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-prod9'
+    dependsOn:
+    - Build_Common
+    - Build_CopyParameters
+    - NonProd_ua
+    stageName: 'Prod_production'
+    functionApps:
+    - function:
+       name: 'GraphUpdater'
+    - function:
+       name: 'MembershipAggregator'
+       dependsOn:
+       - 'GraphUpdater'
+    - function:
+       name: 'SecurityGroup'
+       dependsOn:
+       - 'MembershipAggregator'
+    - function:
+       name: 'AzureTableBackup'
+    - function:
+       name: 'JobScheduler'
+    - function:
+       name: 'JobTrigger'
+       dependsOn:
+       - 'SecurityGroup'
+    condition: |
+      and(
+        succeeded('Build_Common'),
+        succeeded('Build_CopyParameters'),
+        succeeded('NonProd_ua'),
+        in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main'),
+        in(variables['Build.Reason'], 'IndividualCI', 'Manual')
+      )
