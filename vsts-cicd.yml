@@ -157,17 +157,17 @@ stages:
 - template: yaml/deploy-pipeline.yml
   parameters:
     solutionAbbreviation: '$(SolutionAbbreviation)'
-    environmentAbbreviation: 'int'
+    environmentAbbreviation: 'env'
     tenantId: $(tenantId)
     subscriptionName: $(subscriptionName_nonprod)
     subscriptionId: $(subscriptionId_nonprod)
     keyVaultReaders: $(keyVaultReaders_nonprod)
     location: $(location)
-    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-int'
+    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-env'
     dependsOn:
     - Build_Common
     - Build_CopyParameters
-    stageName: 'NonProd_int'
+    stageName: 'NonProd_env'
     functionApps:
     - function:
        name: 'NonProdService'
@@ -205,116 +205,6 @@ stages:
         succeeded('Build_Common'),
         succeeded('Build_CopyParameters'),
         eq(variables['Build.SourceBranch'], 'refs/heads/develop'),
-        in(variables['Build.Reason'], 'IndividualCI', 'Manual')
-      )
-
-- template: yaml/deploy-pipeline.yml
-  parameters:
-    solutionAbbreviation: '$(SolutionAbbreviation)'
-    environmentAbbreviation: 'ua'
-    tenantId: $(tenantId)
-    subscriptionName: $(subscriptionName_nonprod)
-    subscriptionId: $(subscriptionId_nonprod)
-    keyVaultReaders: $(keyVaultReaders_nonprod)
-    location: $(location)
-    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-ua'
-    dependsOn:
-    - Build_Common
-    - Build_CopyParameters
-    stageName: 'NonProd_ua'
-    functionApps:
-    - function:
-       name: 'NonProdService'
-    - function:
-       name: 'GraphUpdater'
-    - function:
-       name: 'MembershipAggregator'
-       dependsOn:
-       - 'GraphUpdater'
-    - function:
-       name: 'AzureUserReader'
-    - function:
-       name: 'SecurityGroup'
-       dependsOn:
-       - 'MembershipAggregator'
-    - function:
-       name: 'OwnershipReader'
-       dependsOn:
-       - 'MembershipAggregator'
-    - function:
-       name: 'TeamsChannel'
-       dependsOn:
-       - 'MembershipAggregator'
-    - function:
-       name: 'AzureMaintenance'
-    - function:
-       name: 'JobTrigger'
-       dependsOn:
-       - 'MembershipAggregator'
-    - function:
-       name: 'Notifier'
-    deployJobScheduler: true
-    condition: |
-      and(
-          succeeded('Build_Common'),
-          succeeded('Build_CopyParameters'),
-          in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main'),
-          in(variables['Build.Reason'], 'IndividualCI', 'Manual')
-      )
-
-- template: yaml/deploy-pipeline.yml
-  parameters:
-    solutionAbbreviation: '$(SolutionAbbreviation)'
-    environmentAbbreviation: 'prodv2'
-    tenantId: $(tenantId)
-    subscriptionName: $(subscriptionName_nonprod)
-    subscriptionId: $(subscriptionId_nonprod)
-    keyVaultReaders: $(keyVaultReaders_nonprod)
-    location: $(location)
-    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-prodv2'
-    dependsOn:
-    - Build_Common
-    - Build_CopyParameters
-    - NonProd_ua
-    stageName: 'Prod_production'
-    functionApps:
-    - function:
-       name: 'NonProdService'
-    - function:
-       name: 'GraphUpdater'
-    - function:
-       name: 'MembershipAggregator'
-       dependsOn:
-       - 'GraphUpdater'
-    - function:
-       name: 'AzureUserReader'
-    - function:
-       name: 'SecurityGroup'
-       dependsOn:
-       - 'MembershipAggregator'
-    - function:
-       name: 'OwnershipReader'
-       dependsOn:
-       - 'MembershipAggregator'
-    - function:
-       name: 'TeamsChannel'
-       dependsOn:
-       - 'MembershipAggregator'
-    - function:
-       name: 'AzureMaintenance'
-    - function:
-       name: 'JobTrigger'
-       dependsOn:
-       - 'MembershipAggregator'
-    - function:
-       name: 'Notifier'
-    deployJobScheduler: true
-    condition: |
-      and(
-        succeeded('Build_Common'),
-        succeeded('Build_CopyParameters'),
-        succeeded('NonProd_ua'),
-        in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main'),
         in(variables['Build.Reason'], 'IndividualCI', 'Manual')
       )
 
