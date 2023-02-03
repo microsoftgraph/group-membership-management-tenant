@@ -9,6 +9,7 @@ resources:
   - repository: group-membership-management
     type: git
     name: <ADO-PROJECT>/<ADO-GMM-PUBLIC-REPOSITORY>
+    ref: refs/tags/<TAG>
 
 trigger:
 - develop

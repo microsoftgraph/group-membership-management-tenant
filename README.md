@@ -37,6 +37,12 @@ git commit -m "updated public submodule"
 git push
 ```
 
+Note:
+
+When you run a build from pipeline after setting up GMM as described here [README](https://github.com/microsoftgraph/group-membership-management#readme), a git tag that matches the build number is added to the the latest commit.
+
+Update `ref: refs/tags/<TAG>` in [vsts-cicd.yml](https://microsoftit.visualstudio.com/OneITVSO/_git/STW-Sol-GrpMM-tenant?path=/vsts-cicd.yml&version=GBdevelop&line=12&lineEnd=12&lineStartColumn=5&lineEndColumn=17&lineStyle=plain&_a=contents) with that tag for a successful build/release.
+
 ## Settings
 
 GMM provides default values for most of the settings needed for its operation. However there are some settings that need to be provided in order to work in your environment.
