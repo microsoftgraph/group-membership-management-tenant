@@ -1,0 +1,25 @@
+stages:
+
+- stage: Build_WebApp
+  dependsOn: Build_Common
+  jobs:
+    - job: Build_WebApp
+      steps:
+      - template: yaml/build-webapp.yml@group-membership-management
+
+      - task: CopyFiles@2
+        displayName: 'Copy .npmrc file to public/UI/web-app'
+        inputs:
+          SourceFolder:  $(System.DefaultWorkingDirectory)/UI/web-app/
+          Contents: '.npmrc'
+          TargetFolder: '$(System.DefaultWorkingDirectory)/public/UI/web-app'
+
+      - task: npmAuthenticate@0
+        displayName: 'npm Authenticate to feed'
+        inputs:
+          workingFile: $(System.DefaultWorkingDirectory)/public/UI/web-app/.npmrc
+
+    # - job: Build_AccessibilityInsights
+    #   dependsOn: Build_WebApp
+    #   steps:
+    #   - template: yaml/build-accessibilityinsights.yml

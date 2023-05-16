@@ -1,0 +1,64 @@
+parameters:
+- name: environmentAbbreviation
+  type: string
+- name: condition
+  type: object
+- name: stageName
+  type: string
+- name: buildRelease
+  type: boolean
+
+stages:
+- stage: '${{ parameters.stageName }}_CopyParameters_WebApp'
+  dependsOn: Build_WebApp
+  condition: ${{ parameters.condition }}
+
+  jobs:
+  - job: Build_WebApp
+    ${{ if parameters.buildRelease }}:
+      strategy:
+          maxParallel: 2
+          matrix:
+            debug:
+              BuildConfiguration: debug
+            release:
+              BuildConfiguration: release
+    ${{ else }}:
+      variables:
+        BuildConfiguration: 'debug'
+
+    steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        artifactName: '$(Build.BuildNumber)_$(BuildConfiguration)'
+        downloadPath: Service\GroupMembershipManagement
+
+    - task: CopyFiles@2
+      displayName: 'Copy webapp arm templates'
+      inputs:
+        SourceFolder: Service/GroupMembershipManagement/Hosts/UI
+        Contents: '**\Infrastructure\**'
+        TargetFolder: '$(build.artifactstagingdirectory)/webapp_arm_templates/UI'
+        OverWrite: true
+
+    - task: CopyFiles@2
+      displayName: 'Copy webapp appSettings.json'
+      inputs:
+        SourceFolder: 'UI/web-app/parameters/'
+        Contents: 'appsettings.${{ parameters.environmentAbbreviation }}.json'
+        TargetFolder: '$(build.artifactstagingdirectory)/webapp_package/web-app/'
+        OverWrite: true
+
+    - task: PowerShell@2
+      displayName: 'Rename appsettings file'
+      inputs:
+        targetType: inline
+        script: |
+            Rename-Item -Path "$(build.artifactstagingdirectory)/webapp_package/web-app/appsettings.${{ parameters.environmentAbbreviation }}.json" `
+                        -NewName "appsettings.json"
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish web app artifacts'
+      inputs:
+        PathtoPublish: '$(build.artifactstagingdirectory)'
+        ArtifactName: '$(Build.BuildNumber)_$(BuildConfiguration)'

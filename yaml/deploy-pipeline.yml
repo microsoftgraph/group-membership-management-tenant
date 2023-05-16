@@ -5,6 +5,8 @@ parameters:
   type: string
 - name: subscriptionId
   type: string
+- name: subscriptionName
+  type: string
 - name: keyVaultReaders
   type: object
 - name: environmentAbbreviation
@@ -21,6 +23,9 @@ parameters:
   type: object
 - name: functionApps
   type: object
+- name: deployJobScheduler
+  type: boolean
+  default: false
 
 stages:
   - stage: ${{ parameters.stageName }}
@@ -28,7 +33,6 @@ stages:
     condition: ${{ parameters.condition }}
 
     jobs:
-
     - deployment: ${{ parameters.stageName }}_DeployResources
       displayName: ${{ parameters.stageName }}_DeployResources
       pool:
@@ -37,7 +41,7 @@ stages:
       variables:
         ${{ if in(parameters.stageName, 'Prod_production', 'NonProd_ua') }}:
           buildType: 'release'
-        ${{ if notIn(parameters.stageName, 'Prod_production', 'NonProd_ua') }}:
+        ${{ else }}:
           buildType: 'debug'
       environment: ${{ parameters.solutionAbbreviation }}-${{ parameters.environmentAbbreviation }}
       strategy:
@@ -52,8 +56,131 @@ stages:
                root: $(Pipeline.Workspace)/$(Build.BuildNumber)_$(buildType)
                location: ${{ parameters.location }}
                tenantId: ${{ parameters.tenantId }}
+               subscriptionName: ${{ parameters.subscriptionName }}
                subscriptionId: ${{ parameters.subscriptionId }}
                keyVaultReaders: ${{ parameters.keyVaultReaders }}
+
+    - template: deploy-webapi.yml
+      parameters:
+        solutionAbbreviation: ${{ parameters.solutionAbbreviation }}
+        environmentAbbreviation: ${{ parameters.environmentAbbreviation }}
+        serviceConnection: ${{ parameters.serviceConnection }}
+        root: $(System.ArtifactsDirectory)/$(Build.BuildNumber)_$(buildType)
+        location: ${{ parameters.location }}
+        tenantId: ${{ parameters.tenantId }}
+        stageName: ${{ parameters.stageName }}
+
+    - ${{ if parameters.deployJobScheduler }}:
+      - job: ${{ parameters.stageName }}_DeployFunction_JobScheduler
+        dependsOn:
+        - ${{ parameters.stageName }}_DeployResources
+        variables:
+          data_storageAccountName: $[ dependencies.${{ parameters.stageName }}_DeployResources.outputs['${{ parameters.stageName }}_DeployResources.dataVariables.data_storageAccountName'] ]
+          ${{ if in(parameters.stageName, 'Prod_production', 'NonProd_ua') }}:
+            buildType: 'release'
+          ${{ else }}:
+            buildType: 'debug'
+        steps:
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: $(Build.BuildNumber)_$(buildType)
+
+          - template: deploy-functionapps.yml
+            parameters:
+              solutionAbbreviation: ${{ parameters.solutionAbbreviation }}
+              environmentAbbreviation: ${{ parameters.environmentAbbreviation }}
+              serviceConnection: ${{ parameters.serviceConnection }}
+              location: ${{ parameters.location }}
+              tenantId: ${{ parameters.tenantId }}
+              subscriptionId: ${{ parameters.subscriptionId }}
+              root: $(System.ArtifactsDirectory)/$(Build.BuildNumber)_$(buildType)
+              name: JobScheduler
+
+      - job: ${{ parameters.stageName }}_SwapDeploymentSlots_JobScheduler
+        dependsOn:
+          - ${{ parameters.stageName }}_DeployFunction_JobScheduler
+        condition: succeeded()
+        steps:
+          - task: AzureAppServiceManage@0
+            displayName: 'swap JobScheduler function app deployment slots'
+            inputs:
+              azureSubscription: ${{parameters.serviceConnection}}
+              webAppName: '${{ parameters.solutionAbbreviation }}-compute-${{ parameters.environmentAbbreviation }}-JobScheduler'
+              resourceGroupName: ${{parameters.solutionAbbreviation}}-compute-${{parameters.environmentAbbreviation}}
+              sourceSlot: staging
+              swapWithProduction: true
+
+      - job: ${{ parameters.stageName }}_GetJobSchedulerSecrets
+        dependsOn:
+          - ${{ parameters.stageName }}_SwapDeploymentSlots_JobScheduler
+        variables:
+          defaultWorkingDirectory: $(System.DefaultWorkingDirectory)
+        steps:
+        - task: AzurePowerShell@5
+          retryCountOnTaskFailure: 3
+          displayName: 'Open Network before read keyvault'
+          inputs:
+            azureSubscription: ${{parameters.serviceConnection}}
+            scriptType: inlineScript
+            inline: |
+              $dataKeyVaultName = "${{parameters.solutionAbbreviation}}-data-${{parameters.environmentAbbreviation}}"
+
+              cd\
+              cd '$(defaultWorkingDirectory)/Infrastructure/script'
+              . ./Update-KeyvaultFirewallRule.ps1
+
+              Update-KeyvaultFirewallRule	-KeyVaultName $dataKeyVaultName -Add $true
+
+            azurePowerShellVersion: LatestVersion
+          name: allowNetworkingForJobSchedulerSecrets
+
+        - task: AzureKeyVault@2
+          displayName: Read JobScheduler secrets
+          name: ${{ parameters.stageName }}_JobSchedulerReadSecrets
+          inputs:
+            ConnectedServiceName: ${{ parameters.serviceConnection }}
+            keyVaultName: ${{ parameters.solutionAbbreviation }}-data-${{ parameters.environmentAbbreviation }}
+            secretsFilter: 'jobSchedulerFunctionKey,jobSchedulerFunctionBaseUrl'
+        - bash: |
+            echo "##vso[task.setvariable variable=jobSchedulerUrl;issecret=false;isoutput=true]$(jobSchedulerFunctionBaseUrl)"
+            echo "##vso[task.setvariable variable=jobSchedulerKey;issecret=true;isoutput=true]$(jobSchedulerFunctionKey)"
+          name: secretJobSchedulerOutput
+
+        - task: AzurePowerShell@5
+          retryCountOnTaskFailure: 3
+          displayName: 'Close Network after read keyvault'
+          inputs:
+            azureSubscription: ${{parameters.serviceConnection}}
+            scriptType: inlineScript
+            inline: |
+              $dataKeyVaultName = "${{parameters.solutionAbbreviation}}-data-${{parameters.environmentAbbreviation}}"
+
+              cd\
+              cd '$(defaultWorkingDirectory)/Infrastructure/script'
+              . ./Update-KeyvaultFirewallRule.ps1
+
+              Update-KeyvaultFirewallRule	-KeyVaultName $dataKeyVaultName -Add $false
+
+            azurePowerShellVersion: LatestVersion
+          name: denyNetworkingForJobSchedulerSecrets
+
+      - job: ${{ parameters.stageName }}_RunJobScheduler
+        pool: server
+        dependsOn:
+          - ${{ parameters.stageName }}_GetJobSchedulerSecrets
+        variables:
+          jobSchedulerFunctionBaseUrl: $[ dependencies.${{ parameters.stageName }}_GetJobSchedulerSecrets.outputs['secretJobSchedulerOutput.jobSchedulerUrl'] ]
+          jobSchedulerFunctionKey: $[ dependencies.${{ parameters.stageName }}_GetJobSchedulerSecrets.outputs['secretJobSchedulerOutput.jobSchedulerKey'] ]
+        steps:
+        - task: AzureFunction@1
+          inputs:
+            function: $(jobSchedulerFunctionBaseUrl)/api/pipelineinvocationstarterfunction
+            key: $(jobSchedulerFunctionKey)
+            method: POST
+            body: '{"DelayForDeploymentInMinutes": 60}'
+            waitForCompletion: true
 
     - ${{ each app in parameters.functionApps }}:
       - job: ${{ parameters.stageName }}_DeployFunction_${{ app.function.name }}
@@ -62,11 +189,12 @@ stages:
         - ${{ if app.function.dependsOn }}:
           - ${{ each dependency in app.function.dependsOn }}:
             - ${{ parameters.stageName }}_DeployFunction_${{ dependency }}
+        condition: succeeded()
         variables:
           data_storageAccountName: $[ dependencies.${{ parameters.stageName }}_DeployResources.outputs['${{ parameters.stageName }}_DeployResources.dataVariables.data_storageAccountName'] ]
           ${{ if in(parameters.stageName, 'Prod_production', 'NonProd_ua') }}:
             buildType: 'release'
-          ${{ if notIn(parameters.stageName, 'Prod_production', 'NonProd_ua') }}:
+          ${{ else }}:
             buildType: 'debug'
         steps:
 
@@ -86,3 +214,24 @@ stages:
               subscriptionId: ${{ parameters.subscriptionId }}
               root: $(System.ArtifactsDirectory)/$(Build.BuildNumber)_$(buildType)
               name: ${{ app.function.name }}
+
+    - ${{ each app in parameters.functionApps }}:
+      - job: ${{ parameters.stageName }}_SwapDeploymentSlots_${{ app.function.name }}
+        dependsOn:
+        - ${{ each functionApp in parameters.functionApps }}:
+          - ${{ parameters.stageName }}_DeployFunction_${{ functionApp.function.name }}
+        - ${{ if app.function.dependsOn }}:
+            - ${{ each dependency in app.function.dependsOn }}:
+              - ${{ parameters.stageName }}_SwapDeploymentSlots_${{ dependency }}
+        - ${{ if and(in(parameters.stageName, 'Prod_production', 'NonProd_ua'), parameters.deployJobScheduler) }}:
+          - ${{ parameters.stageName }}_RunJobScheduler
+        condition: succeeded()
+        steps:
+          - task: AzureAppServiceManage@0
+            displayName: 'swap ${{ app.function.name }} function app deployment slots'
+            inputs:
+              azureSubscription: ${{parameters.serviceConnection}}
+              webAppName: '${{ parameters.solutionAbbreviation }}-compute-${{ parameters.environmentAbbreviation }}-${{ app.function.name }}'
+              resourceGroupName: ${{parameters.solutionAbbreviation}}-compute-${{parameters.environmentAbbreviation}}
+              sourceSlot: staging
+              swapWithProduction: true

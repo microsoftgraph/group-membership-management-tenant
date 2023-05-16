@@ -1,0 +1,140 @@
+parameters:
+- name: alias
+  type: string
+- name: solutionAbbreviation
+  type: string
+- name: environmentAbbreviation
+  type: string
+- name: tenantId
+  type: string
+- name: subscriptionId
+  type: string
+- name: keyVaultReaders
+  type: object
+- name: location
+  type: string
+- name: serviceConnection
+  type: string
+- name: stageName
+  type: string
+- name: condition
+  type: object
+- name: buildRelease
+  type: boolean
+
+stages:
+- ${{ if eq(parameters.environmentAbbreviation, 'int') }}:
+  - template: copy-webapp-parameter-files.yml
+    parameters:
+      environmentAbbreviation: 'int'
+      condition: ${{ parameters.condition }}
+      buildRelease: ${{ parameters.buildRelease }}
+      stageName: ${{ parameters.stageName }}
+  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+    parameters:
+      solutionAbbreviation: '$(SolutionAbbreviation)'
+      environmentAbbreviation: 'int'
+      tenantId: $(tenantId)
+      location: $(location)
+      subscriptionId: $(subscriptionId_nonprod)
+      keyVaultReaders: $(keyVaultReaders_nonprod)
+      serviceConnection: '$(SolutionAbbreviation)-serviceconnection-int'
+      dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
+      stageName: 'NonProd_webapp_int'
+      condition: |
+        and(
+          succeeded('${{ parameters.stageName }}_CopyParameters_WebApp'),
+          eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+        )
+
+
+- ${{ elseif eq(parameters.environmentAbbreviation, 'ua') }}:
+  - template: copy-webapp-parameter-files.yml
+    parameters:
+      environmentAbbreviation: 'ua'
+      condition: ${{ parameters.condition }}
+      buildRelease: ${{ parameters.buildRelease }}
+      stageName: ${{ parameters.stageName }}
+  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+    parameters:
+      solutionAbbreviation: '$(SolutionAbbreviation)'
+      environmentAbbreviation: 'ua'
+      tenantId: $(tenantId)
+      location: $(location)
+      subscriptionId: $(subscriptionId_nonprod)
+      keyVaultReaders: $(keyVaultReaders_nonprod)
+      serviceConnection: '$(SolutionAbbreviation)-serviceconnection-ua'
+      dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
+      stageName: 'NonProd_webapp_ua'
+      condition: |
+        and(
+          succeeded('${{ parameters.stageName }}_CopyParameters_WebApp'),
+          in(variables['Build.SourceBranch'], 'refs/heads/main')
+        )
+
+
+- ${{ elseif eq(parameters.environmentAbbreviation, 'prodv2') }}:
+  - template: copy-webapp-parameter-files.yml
+    parameters:
+      environmentAbbreviation: 'prodv2'
+      condition: ${{ parameters.condition }}
+      stageName: ${{ parameters.stageName }}
+      buildRelease: ${{ parameters.buildRelease }}
+  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+    parameters:
+      solutionAbbreviation: '$(SolutionAbbreviation)'
+      environmentAbbreviation: 'prodv2'
+      tenantId: $(tenantId)
+      location: $(location)
+      subscriptionId: $(subscriptionId_prod)
+      keyVaultReaders: $(keyVaultReaders_prod)
+      serviceConnection: '$(SolutionAbbreviation)-serviceconnection-prodv2'
+      dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
+      stageName: 'Prod_webapp_production'
+      condition: |
+        and(
+          succeeded('${{ parameters.stageName }}_CopyParameters_WebApp'),
+          in(variables['Build.SourceBranch'], 'refs/heads/main'),
+          in(variables['Build.Reason'], 'IndividualCI', 'Manual')
+        )
+
+
+- ${{ else }}:
+  - template: copy-webapp-parameter-files.yml
+    parameters:
+      environmentAbbreviation: '${{ parameters.environmentAbbreviation }}'
+      buildRelease: ${{ parameters.buildRelease }}
+      condition: |
+        and(
+            succeeded('Build_WebApp'),
+            or(
+              and(
+                in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/develop'),
+                eq(variables['Build.Reason'], 'Manual')
+              ),
+              startsWith(variables['Build.SourceBranch'], 'refs/heads/users/${{ parameters.alias }}/')
+            )
+        )
+      stageName: ${{ parameters.stageName }}
+  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+    parameters:
+      solutionAbbreviation: '$(SolutionAbbreviation)'
+      environmentAbbreviation: '${{ parameters.environmentAbbreviation }}'
+      tenantId: $(tenantId)
+      location: $(location)
+      subscriptionId: $(subscriptionId_nonprod)
+      keyVaultReaders: $(keyVaultReaders_nonprod)
+      serviceConnection: '$(SolutionAbbreviation)-serviceconnection-${{ parameters.environmentAbbreviation }}'
+      dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
+      stageName: 'NonProd_webapp_${{ parameters.environmentAbbreviation }}'
+      condition: |
+        and(
+            succeeded('${{ parameters.stageName }}_CopyParameters_WebApp'),
+            or(
+              and(
+                in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/develop'),
+                eq(variables['Build.Reason'], 'Manual')
+              ),
+              startsWith(variables['Build.SourceBranch'], 'refs/heads/users/${{ parameters.alias }}/')
+            )
+        )

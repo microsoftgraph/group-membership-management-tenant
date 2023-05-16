@@ -13,10 +13,50 @@ parameters:
   type: string
 - name: subscriptionId
   type: string
+- name: subscriptionName
+  type: string
 - name: keyVaultReaders
   type: object
 
 steps:
+
+- task: AzurePowerShell@5
+  displayName: 'Run Update-KeyVaultBicepWithFirewallIPs.ps1 script'
+  inputs:
+    azureSubscription: ${{parameters.serviceConnection}}
+    scriptType: inlineScript
+    inline: |
+      cd\
+      cd '${{parameters.root}}/Infrastructure/script'
+      . ./Update-KeyVaultBicepWithFirewallIPs.ps1
+
+      Copy-Item "ipRules.json" "../data/ipRules.json" -Force
+    azurePowerShellVersion: LatestVersion
+  name: preDeploymentScript
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish file for Update-KeyvaultBicepWithFirewallIPs.ps1 json output'
+  inputs:
+    PathtoPublish: '${{parameters.root}}/Infrastructure'
+    ArtifactName: '$(Build.BuildNumber)_$(BuildConfiguration)/Infrastructure'
+
+- task: AzurePowerShell@5
+  displayName: 'Get existing data resources'
+  inputs:
+    azureSubscription: ${{parameters.serviceConnection}}
+    scriptType: inlineScript
+    inline: |
+      $dataResources = Get-AzResource -ResourceGroupName ${{parameters.solutionAbbreviation}}-data-${{parameters.environmentAbbreviation}} | Select-Object -Property Name,ResourceType | ConvertTo-Json -Compress
+      if(!$dataResources){
+        $dataResources = "[]"
+      }
+      else {
+        $dataResources = $dataResources.Replace("""", "'")
+      }
+
+      Write-Host "##vso[task.setvariable variable=dataResources;isOutput=true]$dataResources"
+    azurePowerShellVersion: LatestVersion
+  name: dataResourcesOutput
 
 - task: AzureResourceManagerTemplateDeployment@3
   displayName: 'deploy persistent data'
@@ -27,7 +67,7 @@ steps:
     location: $(location)
     csmFile: ${{ parameters.root }}/Infrastructure/data/template.bicep
     csmParametersFile: ${{parameters.root}}/Infrastructure/data/parameters/parameters.${{parameters.environmentAbbreviation}}.json
-    overrideParameters: '-environmentAbbreviation "${{parameters.environmentAbbreviation}}" -location "${{parameters.location}}" -solutionAbbreviation "${{parameters.solutionAbbreviation}}" -tenantId "${{parameters.tenantId}}" -keyVaultReaders "${{parameters.keyVaultReaders}}"'
+    overrideParameters: '-environmentAbbreviation "${{parameters.environmentAbbreviation}}" -location "${{parameters.location}}" -solutionAbbreviation "${{parameters.solutionAbbreviation}}" -tenantId "${{parameters.tenantId}}" -keyVaultReaders "${{parameters.keyVaultReaders}}" -existingDataResources "$(dataResourcesOutput.dataResources)"'
     deploymentMode: 'Incremental'
     deploymentOutputs: dataoutputs
 

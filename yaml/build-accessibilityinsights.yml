@@ -1,0 +1,39 @@
+steps:
+
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "16.19.0"
+
+  - task: CopyFiles@2
+    displayName: "Copy .npmrc file to public/UI/web-app"
+    inputs:
+      SourceFolder: $(System.DefaultWorkingDirectory)/UI/web-app/
+      Contents: ".npmrc"
+      TargetFolder: "$(System.DefaultWorkingDirectory)/public/UI/web-app"
+
+  - task: npmAuthenticate@0
+    displayName: "npm Authenticate to feed"
+    inputs:
+      workingFile: $(System.DefaultWorkingDirectory)/public/UI/web-app/.npmrc
+
+  - task: Npm@1
+    displayName: 'npm install pnpm@3.8.1'
+    inputs:
+      command: custom
+      workingDir: $(System.DefaultWorkingDirectory)/public/UI/web-app
+      verbose: false
+      customCommand: 'install -g pnpm@3.8.1'
+
+  - script: pnpm install
+    displayName: "pnpm install"
+    workingDirectory: "$(System.DefaultWorkingDirectory)/public/UI/web-app"
+
+  - script: pnpm run build
+    displayName: "pnpm build"
+    workingDirectory: "$(System.DefaultWorkingDirectory)/public/UI/web-app"
+
+  - task: accessibility-insights.prod.task.accessibility-insights@3
+    displayName: Scan for accessibility issues
+    inputs:
+      staticSiteDir: "$(System.DefaultWorkingDirectory)/public/UI/web-app/build"
+      staticSitePort: 3000

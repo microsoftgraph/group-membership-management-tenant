@@ -5,12 +5,25 @@
     "jobsTableName": {
       "value": "syncJobs"
     },
+    "notificationsTableName": {
+      "value": "notifications"
+    },
     "serviceBusTopicSubscriptions": {
       "value": [
         {
           "name": "SecurityGroup",
           "ruleName": "syncType",
           "ruleSqlExpression": "Type = 'SecurityGroup'"
+        },
+        {
+          "name": "TeamsChannel",
+          "ruleName": "syncType",
+          "ruleSqlExpression": "Type = 'TeamsChannel'"
+        },
+        {
+          "name": "GroupOwnership",
+          "ruleName": "syncType",
+          "ruleSqlExpression": "Type = 'GroupOwnership'"
         }
       ]
     },
@@ -25,6 +38,14 @@
           "contentType": "boolean",
           "tag": {
             "tag1": "JobTrigger"
+          }
+        },
+        {
+          "key": "SecurityGroup:IsDeltaCacheEnabled",
+          "value": "true",
+          "contentType": "boolean",
+          "tag": {
+            "tag1": "SecurityGroup"
           }
         },
         {
@@ -76,8 +97,16 @@
           }
         },
         {
+          "key": "GraphUpdater:IsDeltaCacheEnabled",
+          "value": "true",
+          "contentType": "boolean",
+          "tag": {
+            "tag1": "GraphUpdater"
+          }
+        },
+        {
           "key": "GMM:LearnMoreUrl",
-          "value": "http://gmm-learn-more-url",
+          "value": "https://learn-more-about-gmm",
           "contentType": "string",
           "tag": {
             "tag1": "GMM"
@@ -93,10 +122,26 @@
         },
         {
           "key": "JobScheduler:JobSchedulerConfiguration",
-          "value": "{ 'ResetJobs': false, 'DaysToAddForReset': 0, 'DistributeJobs': true, 'IncludeFutureJobs': false, 'StartTimeDelayMinutes': 5, 'DelayBetweenSyncsSeconds': 5, 'DefaultRuntimeSeconds': 60 }",
+          "value": "{'ResetJobs':false,'DaysToAddForReset':0,'DistributeJobs':true,'IncludeFutureJobs':false,'StartTimeDelayMinutes':5,'DelayBetweenSyncsSeconds':5,'DefaultRuntimeSeconds':60,'GetRunTimeFromLogs':true,'RunTimeMetric':'Max','RunTimeRangeInDays':7,'RuntimeQuery':'AppEvents | where Name == \"SyncComplete\" | project TimeElapsed = todouble(Properties[\"SyncJobTimeElapsedSeconds\"]), Destination = tostring(Properties[\"TargetOfficeGroupId\"]), RunId = Properties[\"RunId\"], Result = Properties[\"Result\"], DryRun = Properties[\"IsDryRunEnabled\"] | where Result == \"Success\" and DryRun == \"False\" | project TimeElapsed, Destination, RunId | summarize MaxProcessingTime=max(TimeElapsed), AvgProcessingTime=avg(TimeElapsed) by Destination'}",
           "contentType": "string",
           "tag": {
             "tag1": "JobScheduler"
+          }
+        },
+        {
+          "key": "Mail:IsAdaptiveCardEnabled",
+          "value": "false",
+          "contentType": "boolean",
+          "tag": {
+            "tag1": "Mail"
+          }
+        },
+        {
+          "key": "ThresholdNotification:IsThresholdNotificationEnabled",
+          "value": "false",
+          "contentType": "boolean",
+          "tag": {
+            "tag1": "ThresholdNotification"
           }
         }
       ]
@@ -109,6 +154,9 @@
           "useCommonAlertSchema": true
         }
       ]
+    },
+    "notifierProviderId": {
+      "value": ""
     }
   }
 }

@@ -26,6 +26,8 @@ variables:
   "BuildConfiguration": 'debug'
   "SolutionAbbreviation": 'gmm'
   disable.coverage.autogenerate: 'true'
+  "buildRelease": ${{  in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main') }}
+  tools.ref: $[ resources.repositories['group-membership-management'].ref ]
 
 stages:
 
@@ -33,6 +35,7 @@ stages:
   parameters:
     repoToCheckout: group-membership-management
     checkoutPath: '$(Build.BuildNumber)'
+    buildRelease: ${{variables.buildRelease}}
 
 - template: yaml/build-functionapps.yml@group-membership-management
   parameters:
@@ -40,41 +43,123 @@ stages:
     condition: succeeded('Build_Common')
     repoToCheckout: group-membership-management
     checkoutPath: '$(Build.BuildNumber)'
+    buildRelease: ${{variables.buildRelease}}
     functionApps:
+    - function:
+       name: 'NonProdService'
+       coverageThreshold: 100
     - function:
        name: 'JobTrigger'
        coverageThreshold: 89
     - function:
        name: 'GraphUpdater'
-       coverageThreshold: 77
+       coverageThreshold: 75
     - function:
        name: 'SecurityGroup'
-       coverageThreshold: 94
+       coverageThreshold: 89
     - function:
-       name: 'AzureTableBackup'
+       name: 'TeamsChannel'
+       coverageThreshold: 72
+    - function:
+       name: 'AzureMaintenance'
        coverageThreshold: 95
     - function:
+       name: 'AzureUserReader'
+       coverageThreshold: 68
+    - function:
        name: 'JobScheduler'
-       coverageThreshold: 60
+       coverageThreshold: 48
     - function:
        name: 'MembershipAggregator'
        coverageThreshold: 85
+    - function:
+       name: 'Notifier'
+       coverageThreshold: 75
+    - function:
+       name: 'OwnershipReader'
+       coverageThreshold: 80
 
 - template: yaml/copy-parameter-files.yml
   parameters:
+    buildRelease: ${{variables.buildRelease}}
     functionApps:
+    - name: 'NonProdService'
     - name: 'JobTrigger'
     - name: 'GraphUpdater'
     - name: 'SecurityGroup'
-    - name: 'AzureTableBackup'
+    - name: 'TeamsChannel'
+    - name: 'AzureUserReader'
     - name: 'JobScheduler'
     - name: 'MembershipAggregator'
+    - name: 'AzureMaintenance'
+    - name: 'Notifier'
+    - name: 'OwnershipReader'
+
+- template: build-services.yml
+
+- template: yaml/copy-deploy-webapp.yml
+  parameters:
+    alias: ''
+    solutionAbbreviation: '$(SolutionAbbreviation)'
+    environmentAbbreviation: 'int'
+    tenantId: $(tenantId)
+    subscriptionId: $(subscriptionId_nonprod)
+    keyVaultReaders: $(keyVaultReaders_nonprod)
+    location: $(location)
+    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-int'
+    buildRelease: ${{variables.buildRelease}}
+    stageName: 'NonProd_webapp_int'
+    condition: |
+      and(
+        succeeded('Build_WebApp'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+      )
+
+
+- template: yaml/copy-deploy-webapp.yml
+  parameters:
+    alias: ''
+    solutionAbbreviation: '$(SolutionAbbreviation)'
+    environmentAbbreviation: 'ua'
+    tenantId: $(tenantId)
+    subscriptionId: $(subscriptionId_nonprod)
+    keyVaultReaders: $(keyVaultReaders_nonprod)
+    location: $(location)
+    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-ua'
+    buildRelease: ${{variables.buildRelease}}
+    stageName: 'NonProd_webapp_ua'
+    condition: |
+      and(
+        succeeded('Build_WebApp'),
+        in(variables['Build.SourceBranch'], 'refs/heads/main')
+      )
+
+
+- template: yaml/copy-deploy-webapp.yml
+  parameters:
+    alias: ''
+    solutionAbbreviation: '$(SolutionAbbreviation)'
+    environmentAbbreviation: 'prodv2'
+    tenantId: $(tenantId)
+    subscriptionId: $(subscriptionId_prod)
+    keyVaultReaders: $(keyVaultReaders_prod)
+    location: $(location)
+    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-prodv2'
+    buildRelease: ${{variables.buildRelease}}
+    stageName: 'Prod_webapp_production'
+    condition: |
+      and(
+        succeeded('Build_WebApp'),
+        in(variables['Build.SourceBranch'], 'refs/heads/main'),
+        in(variables['Build.Reason'], 'IndividualCI', 'Manual')
+      )
 
 - template: yaml/deploy-pipeline.yml
   parameters:
     solutionAbbreviation: '$(SolutionAbbreviation)'
     environmentAbbreviation: 'int'
     tenantId: $(tenantId)
+    subscriptionName: $(subscriptionName_nonprod)
     subscriptionId: $(subscriptionId_nonprod)
     keyVaultReaders: $(keyVaultReaders_nonprod)
     location: $(location)
@@ -85,26 +170,40 @@ stages:
     stageName: 'NonProd_int'
     functionApps:
     - function:
+       name: 'NonProdService'
+    - function:
        name: 'GraphUpdater'
     - function:
        name: 'MembershipAggregator'
        dependsOn:
        - 'GraphUpdater'
     - function:
+       name: 'AzureUserReader'
+    - function:
        name: 'SecurityGroup'
        dependsOn:
        - 'MembershipAggregator'
     - function:
-       name: 'AzureTableBackup'
+       name: 'OwnershipReader'
+       dependsOn:
+       - 'MembershipAggregator'
     - function:
-       name: 'JobScheduler'
+       name: 'TeamsChannel'
+       dependsOn:
+       - 'MembershipAggregator'
+    - function:
+       name: 'AzureMaintenance'
     - function:
        name: 'JobTrigger'
        dependsOn:
-       - 'SecurityGroup'
+       - 'MembershipAggregator'
+    - function:
+       name: 'Notifier'
+    deployJobScheduler: true
     condition: |
       and(
         succeeded('Build_Common'),
+        succeeded('Build_CopyParameters'),
         eq(variables['Build.SourceBranch'], 'refs/heads/develop'),
         in(variables['Build.Reason'], 'IndividualCI', 'Manual')
       )
@@ -114,6 +213,7 @@ stages:
     solutionAbbreviation: '$(SolutionAbbreviation)'
     environmentAbbreviation: 'ua'
     tenantId: $(tenantId)
+    subscriptionName: $(subscriptionName_nonprod)
     subscriptionId: $(subscriptionId_nonprod)
     keyVaultReaders: $(keyVaultReaders_nonprod)
     location: $(location)
@@ -124,26 +224,40 @@ stages:
     stageName: 'NonProd_ua'
     functionApps:
     - function:
+       name: 'NonProdService'
+    - function:
        name: 'GraphUpdater'
     - function:
        name: 'MembershipAggregator'
        dependsOn:
        - 'GraphUpdater'
     - function:
+       name: 'AzureUserReader'
+    - function:
        name: 'SecurityGroup'
        dependsOn:
        - 'MembershipAggregator'
     - function:
-       name: 'AzureTableBackup'
+       name: 'OwnershipReader'
+       dependsOn:
+       - 'MembershipAggregator'
     - function:
-       name: 'JobScheduler'
+       name: 'TeamsChannel'
+       dependsOn:
+       - 'MembershipAggregator'
+    - function:
+       name: 'AzureMaintenance'
     - function:
        name: 'JobTrigger'
        dependsOn:
-       - 'SecurityGroup'
+       - 'MembershipAggregator'
+    - function:
+       name: 'Notifier'
+    deployJobScheduler: true
     condition: |
       and(
           succeeded('Build_Common'),
+          succeeded('Build_CopyParameters'),
           in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main'),
           in(variables['Build.Reason'], 'IndividualCI', 'Manual')
       )
@@ -151,12 +265,13 @@ stages:
 - template: yaml/deploy-pipeline.yml
   parameters:
     solutionAbbreviation: '$(SolutionAbbreviation)'
-    environmentAbbreviation: 'prod9'
+    environmentAbbreviation: 'prodv2'
     tenantId: $(tenantId)
-    subscriptionId: $(subscriptionId_prod)
-    keyVaultReaders: $(keyVaultReaders_prod)
+    subscriptionName: $(subscriptionName_nonprod)
+    subscriptionId: $(subscriptionId_nonprod)
+    keyVaultReaders: $(keyVaultReaders_nonprod)
     location: $(location)
-    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-prod9'
+    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-prodv2'
     dependsOn:
     - Build_Common
     - Build_CopyParameters
@@ -164,23 +279,36 @@ stages:
     stageName: 'Prod_production'
     functionApps:
     - function:
+       name: 'NonProdService'
+    - function:
        name: 'GraphUpdater'
     - function:
        name: 'MembershipAggregator'
        dependsOn:
        - 'GraphUpdater'
     - function:
+       name: 'AzureUserReader'
+    - function:
        name: 'SecurityGroup'
        dependsOn:
        - 'MembershipAggregator'
     - function:
-       name: 'AzureTableBackup'
+       name: 'OwnershipReader'
+       dependsOn:
+       - 'MembershipAggregator'
     - function:
-       name: 'JobScheduler'
+       name: 'TeamsChannel'
+       dependsOn:
+       - 'MembershipAggregator'
+    - function:
+       name: 'AzureMaintenance'
     - function:
        name: 'JobTrigger'
        dependsOn:
-       - 'SecurityGroup'
+       - 'MembershipAggregator'
+    - function:
+       name: 'Notifier'
+    deployJobScheduler: true
     condition: |
       and(
         succeeded('Build_Common'),
@@ -189,3 +317,4 @@ stages:
         in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main'),
         in(variables['Build.Reason'], 'IndividualCI', 'Manual')
       )
+

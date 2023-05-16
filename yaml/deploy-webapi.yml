@@ -1,0 +1,64 @@
+parameters:
+  solutionAbbreviation: ''
+  environmentAbbreviation: ''
+  serviceConnection: ''
+  root: ''
+  location: ''
+  tenantId: ''
+  stageName: ''
+
+jobs:
+- job: ${{ parameters.stageName }}_Deploy_WebAPI
+  dependsOn:
+  - ${{ parameters.stageName }}_DeployResources
+  variables:
+    ${{ if in(parameters.stageName, 'Prod_production', 'NonProd_ua') }}:
+      buildType: 'release'
+    ${{ else }}:
+      buildType: 'debug'
+
+  steps:
+    - task: DownloadBuildArtifacts@0
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: $(Build.BuildNumber)_$(buildType)
+
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: 'Deploy WebAPI data resources'
+      inputs:
+        azureResourceManagerConnection: ${{parameters.serviceConnection}}
+        subscriptionId: ${{parameters.subscriptionId}}
+        resourceGroupName: ${{parameters.solutionAbbreviation}}-data-${{parameters.environmentAbbreviation}}
+        location: ${{parameters.location}}
+        csmFile: ${{ parameters.root }}/webapi_arm_templates/Infrastructure/data/template.bicep
+        csmParametersFile: ${{ parameters.root }}/webapi_arm_templates/Infrastructure/data/parameters/parameters.${{parameters.environmentAbbreviation}}.json
+        overrideParameters: -solutionAbbreviation "${{parameters.solutionAbbreviation}}"
+                            -environmentAbbreviation "${{parameters.environmentAbbreviation}}"
+        deploymentMode: 'Incremental'
+        deploymentOutputs: dataDeploymentOutputs
+
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: 'Deploy WebAPI compute resources'
+      inputs:
+        azureResourceManagerConnection: ${{parameters.serviceConnection}}
+        subscriptionId: ${{parameters.subscriptionId}}
+        resourceGroupName: ${{parameters.solutionAbbreviation}}-compute-${{parameters.environmentAbbreviation}}
+        location: ${{parameters.location}}
+        csmFile: ${{ parameters.root }}/webapi_arm_templates/Infrastructure/compute/template.bicep
+        csmParametersFile: ${{ parameters.root }}/webapi_arm_templates/Infrastructure/compute/parameters/parameters.${{parameters.environmentAbbreviation}}.json
+        overrideParameters: -location "${{parameters.location}}"
+                            -solutionAbbreviation "${{parameters.solutionAbbreviation}}"
+                            -environmentAbbreviation "${{parameters.environmentAbbreviation}}"
+                            -tenantId "${{parameters.tenantId}}"
+        deploymentMode: 'Incremental'
+        deploymentOutputs: deploymentOutputs
+
+    - task: AzureWebApp@1
+      displayName: 'Deploy WebAPI code'
+      inputs:
+        azureSubscription: ${{parameters.serviceConnection}}
+        appType: 'webApp'
+        appName: '${{parameters.solutionAbbreviation}}-compute-${{parameters.environmentAbbreviation}}-webapi'
+        package: '${{ parameters.root }}/webapi_package/webapi.zip'
+        deploymentMethod: 'runFromPackage '

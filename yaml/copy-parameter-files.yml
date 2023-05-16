@@ -1,21 +1,31 @@
 parameters:
 - name: functionApps
   type: object
+- name: buildRelease
+  type: boolean
 
 stages:
 
 - stage: Build_CopyParameters
+  dependsOn:
+  - Build_Functions
+  - Build_WebAPI
 
   jobs:
 
   - job: Copy_common_infrastructure
-    strategy:
-      maxParallel: 2
-      matrix:
-        debug:
-          BuildConfiguration: debug
-        release:
-          BuildConfiguration: release
+    ${{ if parameters.buildRelease }}:
+      strategy:
+        maxParallel: 2
+        matrix:
+          debug:
+            BuildConfiguration: debug
+          release:
+            BuildConfiguration: release
+    ${{ else }}:
+        variables:
+          BuildConfiguration: 'debug'
+
     steps:
       - task: DownloadBuildArtifacts@0
         inputs:
@@ -28,38 +38,25 @@ stages:
           SourceFolder: Infrastructure
           TargetFolder: '$(build.artifactstagingdirectory)/Infrastructure'
 
+      - ${{ each func in parameters.functionApps }}:
+        - task: CopyFiles@2
+          displayName: 'copy ${{ func.name }} function arm templates'
+          inputs:
+            SourceFolder: Service/GroupMembershipManagement/Hosts/${{ func.name }}
+            Contents: '**\Infrastructure\**'
+            TargetFolder: '$(build.artifactstagingdirectory)/functions_arm_templates/${{ func.name }}'
+            OverWrite: true
+
+      - task: CopyFiles@2
+        displayName: 'Copy webapi arm templates'
+        inputs:
+          SourceFolder: Service/GroupMembershipManagement/Hosts/WebApi
+          Contents: '**\Infrastructure\**'
+          TargetFolder: '$(build.artifactstagingdirectory)/webapi_arm_templates/'
+          OverWrite: true
+
       - task: PublishBuildArtifacts@1
         displayName: 'publish artifacts'
         inputs:
           PathtoPublish: '$(build.artifactstagingdirectory)'
           ArtifactName: '$(Build.BuildNumber)_$(BuildConfiguration)'
-
-  - ${{ each func in parameters.functionApps }}:
-      - job: Build_${{ func.name }}
-        strategy:
-          maxParallel: 2
-          matrix:
-            debug:
-              BuildConfiguration: debug
-            release:
-              BuildConfiguration: release
-
-        steps:
-          - task: DownloadBuildArtifacts@0
-            inputs:
-              artifactName: '$(Build.BuildNumber)_$(BuildConfiguration)'
-              downloadPath: Service\GroupMembershipManagement
-
-          - task: CopyFiles@2
-            displayName: 'copy ${{ func.name }} function arm templates'
-            inputs:
-              SourceFolder: Service/GroupMembershipManagement/Hosts/${{ func.name }}
-              Contents: '**\Infrastructure\**'
-              TargetFolder: '$(build.artifactstagingdirectory)/functions_arm_templates/${{ func.name }}'
-              OverWrite: true
-
-          - task: PublishBuildArtifacts@1
-            displayName: 'publish artifacts'
-            inputs:
-              PathtoPublish: '$(build.artifactstagingdirectory)'
-              ArtifactName: '$(Build.BuildNumber)_$(BuildConfiguration)'
