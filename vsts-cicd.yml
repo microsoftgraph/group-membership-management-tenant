@@ -101,57 +101,18 @@ stages:
   parameters:
     alias: ''
     solutionAbbreviation: '$(SolutionAbbreviation)'
-    environmentAbbreviation: 'int'
+    environmentAbbreviation: 'env'
     tenantId: $(tenantId)
     subscriptionId: $(subscriptionId_nonprod)
     keyVaultReaders: $(keyVaultReaders_nonprod)
     location: $(location)
-    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-int'
+    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-env'
     buildRelease: ${{variables.buildRelease}}
-    stageName: 'NonProd_webapp_int'
+    stageName: 'NonProd_webapp_env'
     condition: |
       and(
         succeeded('Build_WebApp'),
         eq(variables['Build.SourceBranch'], 'refs/heads/develop')
-      )
-
-
-- template: yaml/copy-deploy-webapp.yml
-  parameters:
-    alias: ''
-    solutionAbbreviation: '$(SolutionAbbreviation)'
-    environmentAbbreviation: 'ua'
-    tenantId: $(tenantId)
-    subscriptionId: $(subscriptionId_nonprod)
-    keyVaultReaders: $(keyVaultReaders_nonprod)
-    location: $(location)
-    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-ua'
-    buildRelease: ${{variables.buildRelease}}
-    stageName: 'NonProd_webapp_ua'
-    condition: |
-      and(
-        succeeded('Build_WebApp'),
-        in(variables['Build.SourceBranch'], 'refs/heads/main')
-      )
-
-
-- template: yaml/copy-deploy-webapp.yml
-  parameters:
-    alias: ''
-    solutionAbbreviation: '$(SolutionAbbreviation)'
-    environmentAbbreviation: 'prodv2'
-    tenantId: $(tenantId)
-    subscriptionId: $(subscriptionId_prod)
-    keyVaultReaders: $(keyVaultReaders_prod)
-    location: $(location)
-    serviceConnection: '$(SolutionAbbreviation)-serviceconnection-prodv2'
-    buildRelease: ${{variables.buildRelease}}
-    stageName: 'Prod_webapp_production'
-    condition: |
-      and(
-        succeeded('Build_WebApp'),
-        in(variables['Build.SourceBranch'], 'refs/heads/main'),
-        in(variables['Build.Reason'], 'IndividualCI', 'Manual')
       )
 
 - template: yaml/deploy-pipeline.yml
