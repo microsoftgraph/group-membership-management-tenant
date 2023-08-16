@@ -55,7 +55,7 @@ stages:
        name: 'GraphUpdater'
        coverageThreshold: 75
     - function:
-       name: 'SecurityGroup'
+       name: 'GroupMembershipObtainer'
        coverageThreshold: 89
     - function:
        name: 'TeamsChannel'
@@ -86,7 +86,7 @@ stages:
     - name: 'NonProdService'
     - name: 'JobTrigger'
     - name: 'GraphUpdater'
-    - name: 'SecurityGroup'
+    - name: 'GroupMembershipObtainer'
     - name: 'TeamsChannel'
     - name: 'AzureUserReader'
     - name: 'JobScheduler'
@@ -141,7 +141,7 @@ stages:
     - function:
        name: 'AzureUserReader'
     - function:
-       name: 'SecurityGroup'
+       name: 'GroupMembershipObtainer'
        dependsOn:
        - 'MembershipAggregator'
     - function:
