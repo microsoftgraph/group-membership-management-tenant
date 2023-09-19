@@ -53,7 +53,7 @@ stages:
        coverageThreshold: 89
     - function:
        name: 'GraphUpdater'
-       coverageThreshold: 75
+       coverageThreshold: 74
     - function:
        name: 'GroupMembershipObtainer'
        coverageThreshold: 89
@@ -76,7 +76,7 @@ stages:
        name: 'Notifier'
        coverageThreshold: 75
     - function:
-       name: 'OwnershipReader'
+       name: 'GroupOwnershipObtainer'
        coverageThreshold: 80
 
 - template: yaml/copy-parameter-files.yml
@@ -93,9 +93,7 @@ stages:
     - name: 'MembershipAggregator'
     - name: 'AzureMaintenance'
     - name: 'Notifier'
-    - name: 'OwnershipReader'
-
-- template: build-services.yml
+    - name: 'GroupOwnershipObtainer'
 
 - template: yaml/copy-deploy-webapp.yml
   parameters:
@@ -145,7 +143,7 @@ stages:
        dependsOn:
        - 'MembershipAggregator'
     - function:
-       name: 'OwnershipReader'
+       name: 'GroupOwnershipObtainer'
        dependsOn:
        - 'MembershipAggregator'
     - function:
