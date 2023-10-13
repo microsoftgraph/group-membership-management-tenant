@@ -71,6 +71,18 @@ steps:
     deploymentMode: 'Incremental'
     deploymentOutputs: dataoutputs
 
+- task: AzureResourceManagerTemplateDeployment@3
+  displayName: 'deploy private persistent data'
+  inputs:
+    azureResourceManagerConnection: ${{parameters.serviceConnection}}
+    subscriptionId: ${{parameters.subscriptionId}}
+    resourceGroupName: ${{parameters.solutionAbbreviation}}-data-${{parameters.environmentAbbreviation}}
+    location: $(location)
+    csmFile: ${{ parameters.root }}/Infrastructure/data/private/template.bicep
+    csmParametersFile: ${{parameters.root}}/Infrastructure/data/private/parameters/parameters.${{parameters.environmentAbbreviation}}.json
+    overrideParameters: '-environmentAbbreviation "${{parameters.environmentAbbreviation}}" -location "${{parameters.location}}" -solutionAbbreviation "${{parameters.solutionAbbreviation}}" -tenantId "${{parameters.tenantId}}" -keyVaultReaders "${{parameters.keyVaultReaders}}"'
+    deploymentMode: 'Incremental'
+
 - powershell: |
     Write-Host $ENV:dataoutputs;
     $outputs = ConvertFrom-Json -InputObject $ENV:dataoutputs;
