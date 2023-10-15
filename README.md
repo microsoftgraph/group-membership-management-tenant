@@ -179,7 +179,7 @@ The steps in this document will setup a single environment i.e. prodv2, if you w
 
 ## Create resource groups and the prereqs keyvault
 
-See [Resource Groups](##Resource-groups-overview) and [Prereqs Keyvault](##Prereqs-keyvault-overview).
+See [Resource Groups](#resource-groups-overview) and [Prereqs Keyvault](#prereqs-keyvault-overview).
 
 The following script is going to create the Azure resource groups and the prereqs keyvault required to set up GMM. We create these resource groups and keyvault in order for the ARM templates to be able to create additional resources and deploy the code.
 
@@ -222,8 +222,8 @@ From your `PowerShell 7.x` command prompt navigate to the `Scripts` folder of yo
                                                 -Verbose
 Follow the instructions on the screen.
 
-Note:   
-* AppTenantId <app-tenant-id> - If the application is going to be installed in a different tenant, set that tenant id here.  
+Note:
+* AppTenantId <app-tenant-id> - If the application is going to be installed in a different tenant, set that tenant id here.
 * KeyVaultTenantId <keyvault-tenant-id> - This is the tenant where your GMM resources are located, i.e. keyvaults, storage account.
 * If you only have one tenant, these will be set to the same tenant id.
 
@@ -301,7 +301,7 @@ See [WebApiSetup.md](https://github.com/microsoftgraph/group-membership-manageme
 
 ## Adding a new GMM environment
 
-See [GMM Environments](##GMM-environments) and [ARM templates and parameter files overview](##ARM-templates-and-parameter-files-overview).
+See [GMM Environments](#gmm-environments) and [ARM templates and parameter files overview](#ARM-templates-and-parameter-files-overview).
 
 ### To add a new GMM environment:
 
@@ -399,40 +399,42 @@ See [GMM Environments](##GMM-environments) and [ARM templates and parameter file
 8. In your `Private` repo, locate and open file [vsts-cicd.yml](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/vsts-cicd.yml)
 
 9. Locate the `repositories` information at the top. It should look like this:
+    ```
     resources:
       repositories:
       - repository: group-membership-management
         type: git
         name: <ADO-PROJECT>/<ADO-GMM-PUBLIC-REPOSITORY>
         ref: refs/tags/<TAG>
-
-10. Replace `<ADO-PROJECT>/<ADO-GMM-PUBLIC-REPOSITORY>` with your project name and your `Public` repository name. Change `<TAG>` to the latest tag. The latest Git tag for a repository can be found next to the commit. If you see multiple tags on a commit, please specify one among those. Alternatively, you can replace the line `ref: refs/tags/<TAG>` to `ref: main` so that it will pick up the latest commit from the `main` branch during build/release.
+    ```
+10. - Replace `<ADO-PROJECT>/<ADO-GMM-PUBLIC-REPOSITORY>` with your project name and your `Public` repository name.
+    - Change `<TAG>` to the latest tag. The latest Git tag for a repository can be found next to the commit. If you see multiple tags on a commit, please specify one among those. Alternatively, you can replace the line `ref: refs/tags/<TAG>` to `ref: main` so that it will pick up the latest commit from the `main` branch during build/release.
 
 11. Save your changes.
 
-12. Create parameter files based off the provided `parameters.env.json` by using the [Add-ParamFiles.ps1](/scripts/Add-ParamFiles.ps1) script:
+12. Create parameter files based off the provided `parameters.env.json` by using the [Add-ParamFiles.ps1](https://github.com/microsoftgraph/group-membership-management/blob/main/Scripts/Add-ParamFiles.ps1) script:
     * From your PowerShell command prompt navigate to the Scripts folder of your `Public` repo and type these commands.
 
             1. . ./Add-ParamFiles.ps1
             2. Add-ParamFiles   -EnvironmentAbbreviation "<EnvironmentAbbreviation>" `
                                 -SourceEnvironmentAbbreviation "<SourceEnvironmentAbbreviation>" `
                                 -RepoPath "<RepoPath>"
-        * Use `"env"` for `<SourceEnvironmentAbbreviation>` and the absolute path to your private repositoty for `<RepoPath>`.
+        * Use `"env"` for `<SourceEnvironmentAbbreviation>` and the absolute path to your private repository for `<RepoPath>`.
     * This command will go into each of the `parameters` folders and copy and rename the `parameters.env.json` file to `parameters.<EnvironmentAbbreviation>.json`. These new parameter files will be used to by the ARM templates to deploy the resources of the new environment.
-    * You may create an AAD Group and provide the values for sqlAdministratorsGroupId and sqlAdministratorsGroupName in [your param file](/Infrastructure/data/parameters).
-    * You also want to provide values for `branch` and `repositoryUrl` in [your UI param file](/Service/GroupMembershipManagement/Hosts/UI/Infrastrure/compute/parameters). You can provide "" for `customDomainName` if you have not set up a custom domain.
+    * You may create an AAD Group and provide the values for sqlAdministratorsGroupId and sqlAdministratorsGroupName in [your param file](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Infrastructure/data/parameters).
+    * You also want to provide values for `branch` and `repositoryUrl` in [your UI param file](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Service/GroupMembershipManagement/Hosts/UI/Infrastructure/compute/parameters). You can provide "" for `customDomainName` if you have not set up a custom domain.
 
 ### To remove a GMM environment:
 
-1. Delete the [vsts-cicd.yml](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/vsts-cicd.yml) `yaml/deploy-pipeline.yml` template of the environment and save your changes. You might need to update any templates that had a dependency on the deleted template. For instance `dependsOn` and `condition` settings.
+1. Delete your environment from [vsts-cicd.yml](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/vsts-cicd.yml) and save your changes. You might need to update any templates that had a dependency on the deleted template. For instance `dependsOn` and `condition` settings.
 
-2. Use the [Remove-ParamFiles.ps1](/scripts/Remove-ParamFiles.ps1) script to remove the parameter files of the given environment:
+2. Use the [Remove-ParamFiles.ps1](https://github.com/microsoftgraph/group-membership-management/blob/main/Scripts/Remove-ParamFiles.ps1) script to remove the parameter files of the given environment:
     * From your PowerShell command prompt navigate to the Scripts folder of your `Public` repo and type these commands.
 
             1. . ./Remove-ParamFiles.ps1
             2. Remove-ParamFiles    -TargetEnvironmentAbbreviation "<TargetEnvironmentAbbreviation>" `
                                     -RepoPath "<RepoPath>"
-        * Use the `<EnvironmentAbbreviation>` of the environment you want to remove for `<TargetEnvironmentAbbreviation>` and the path to your private repositoty for `<RepoPath>`.
+        * Use the `<EnvironmentAbbreviation>` of the environment you want to remove for `<TargetEnvironmentAbbreviation>` and the path to your private repository for `<RepoPath>`.
 
 ## Create a Service Connection
 
@@ -468,7 +470,7 @@ The following PowerShell scripts create a Service Principal and set up a Service
 
 3. Set-ServiceConnection.ps1
 
-    This script sets up the service connection for your environment. You must be an owner of the the service pricipal created in step 1 to run this script.
+    This script sets up the service connection for your environment. You must be an owner of the the service principal created in step 1 to run this script.
 
     From your `PowerShell 7.x` command prompt navigate to the `Scripts` folder of your `Public` repo, run these commands, and follow the instructions on the screen:
 
@@ -489,16 +491,10 @@ The following PowerShell scripts create a Service Principal and set up a Service
     Go to your <SolutionAbbreviation>-prereqs-<EnvironmentAbbreviation> keyvault > Click on 'Access policies' > Click on Create > Select Get, List, and Set secrets permissions and then add your <SolutionAbbreviation>-serviceconnection-<EnvironmentAbbreviation> as the principal.
 
 5. For testing purposes, "`<SolutionAbbreviation>`-serviceconnection-`<EnvironmentAbbreviation>`" must be assigned the 'Owner' role in your data resource group to successfully run the pipeline. Please note that this is for testing only and is not recommended for production use. In a production environment or when operating as a company, it is advised to define a custom role that aligns with the principle of least privilege for enhanced security. This custom role should only provide the minimum permissions necessary for the pipeline to function correctly, thereby minimizing potential security risks.
-    
-## Set up email notifications
-
-Please follow the steps in this documentation, which will ensure that the requestor is notified regarding the synchronization job status:
-[SetSenderAddressForEmailNotification.md](/Service/GroupMembershipManagement/Repositories.Mail/Documentation/SetSenderAddressForEmailNotification.md)
-
 
 ## Setup the Notifier
 
-Please follow the instructions in the [Notifier Setup](./Documentation/NotifierSetup.md) documentation.
+Please follow the instructions in the [Notifier Setup](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/NotifierSetup.md) documentation.
 
 ## Create an Azure DevOps environment
 
@@ -567,7 +563,7 @@ In Azure DevOps, we need to create a pipeline that will create your resources an
             3. Search for the name of the user or group and select it from the results list.
             4. Locate the `Object ID` field. This is the value that you will need to copy.
 
-    12. Follow [Update Build/Release Pipeline variables](UI\Documentation\UISetup.md) to create additional variables and deploy WebAPI & UI.
+    12. Follow [Update Build/Release Pipeline variables](https://github.com/microsoftgraph/group-membership-management/blob/main/UI/Documentation/UISetup.md) to create additional variables and deploy WebAPI & UI.
     13. Once all variables have been created click on the "Save" button.
     14. Run your pipeline.
 
@@ -575,11 +571,11 @@ In Azure DevOps, we need to create a pipeline that will create your resources an
 
     *Points to remember while running the pipeline:*
         * *If you see an error task `mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks` is missing, install it from [here](https://marketplace.visualstudio.com/items?itemName=mspremier.BuildQualityChecks&ssr=false&referrer=https%3A%2F%2Fapp.vssps.visualstudio.com%2F#overview)*
-        * *If you see an error `no hosted parallelism has been purchased or granted`, please fill out [this](https://aka.ms/azpipelines-parallelism-request) form to request a free parallelism grant. Please note that it could take 2-3 business days to approve the request.*        
+        * *If you see an error `no hosted parallelism has been purchased or granted`, please fill out [this](https://aka.ms/azpipelines-parallelism-request) form to request a free parallelism grant. Please note that it could take 2-3 business days to approve the request.*
         * *If you see an error `MissingSubscriptionRegistration`, go to Subscription -> Resource Providers and register the missing provider*
-        * *If you see deployment failing at RunJobScheduler, run Set-PostDeploymentRoles (next step) and rerun the release*    
+        * *If you see deployment failing at RunJobScheduler, run Set-PostDeploymentRoles (next step) and rerun the release*
 
-    15. If you want to set up AzureUserReader Durable Function, please follow the instruction here: [AzureUserReader](Service\GroupMembershipManagement\Hosts\AzureUserReader\Documentation\README.md). Otherwise, you can remove this function from vsts-cicd.yml file
+    15. If you want to set up AzureUserReader Durable Function, please follow the instruction here: [AzureUserReader](https://github.com/microsoftgraph/group-membership-management/blob/main/Service/GroupMembershipManagement/Hosts/AzureUserReader/Documentation/README.md). Otherwise, you can remove this function from vsts-cicd.yml file
 
 ## Post-Deployment tasks
 
@@ -625,9 +621,6 @@ Repeat the steps above for each function.
 *Points to remember:*
         * *Try logging into SQL database via Azure Portal by adding the IP address*
 
-Note:
-PlaceMembershipObtainer is not being deployed by default, if you need to deploy it, you will need to grant access to the database as well.
-
 ## Grant the service connection access to SQL Server Database
 
 Your service connection needs MSI access to the SQL Server DB so it can deploy the DACPAC file.
@@ -659,7 +652,7 @@ BEGIN
 END
 ```
 
-Verify it ran successufully by running:
+Verify it ran successfully by running:
 ```
 SELECT * FROM sys.database_principals WHERE name = N'<SolutionAbbreviation>-serviceconnection-<EnvironmentAbbreviation>'
 ```
@@ -669,7 +662,14 @@ You should see one record for your service connection resource.
 
 The jobs table contains all the sync jobs that GMM will perform.
 
-### To create the necessary tables for your environment:
+#### Create jobs table in SQL database
+
+* Go to https://`<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi.azurewebsites.net/swagger/index.html
+* Hit the endpoint `admin/databaseMigration`. This will create the jobs table in `<solutionAbbreviation>`-data-`<environmentAbbreviation>`-jobs database
+    * *Note: To hit the endpoint: 1- Add `ASPNETCORE_ENVIRONMENT: development` in `<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi, 2-update the value of config setting `ConnectionStrings:JobsContext` in `<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi with the value of `jobsMSIConnectionString` which you can find in your data key vault*
+* Run [this script](/Scripts/New-GmmGroupMembershipSyncJob.ps1) to add a job to sql database
+
+#### Create notifications tables in storage account:
 
 Open your jobs storage account on Azure Explorer:
 
@@ -677,16 +677,7 @@ Open your jobs storage account on Azure Explorer:
 * Go to `Subscription` and select the subscription used for GMM
 * Go to `Resource Groups` and select `gmm-data-<EnvironmentAbbreviation>`
 * Under `Resources`, select the `jobs<EnvironmentAbbreviation><ID>` storage account, and open it on Azure Explorer
-
-Create two new tables:
-
-* On Azure Explorer, under your storage account, right click on `Tables`
-  * Create a new table called `syncJobs`
-    * Go to the table and click on `Import` at the top bar
-    * Import the `syncJobsSample.csv` file located under the `Documentation` folder of your `Public` repo
-    * IMPORTANT: Remove the sample entry from the table before proceeding
-    * Note: For more information on the properties of the jobs table, see [syncJobs properties](./Documentation/syncJobsProperties.md).
-  * Create a new table called `notifications`
+* Create a new table called `notifications`
     * Go to the table and click on `Import` at the top bar
     * Import the `thresholdNotificationSample.csv` file located under the `Documentation` folder of your `Public` repo
     * IMPORTANT: Remove the sample entry from the table before proceeding
@@ -695,8 +686,8 @@ Create two new tables:
 
 To create a production environment:
 
-1. Using the same Azure DevOps repositories and pipeline created on the first iteration, follow the steps of [GMM Setup](#GMM-Setup) to create another environment.
-2. Use the following `yaml/deploy-pipeline.yml` template for step 2 of [Adding a new GMM environment](###To-add-a-new-GMM-environment:):
+1. Using the same Azure DevOps repositories and pipeline created on the first iteration, follow the steps of [GMM Setup](#gmm-setup) to create another environment.
+2. Use the following `yaml/deploy-pipeline.yml` template for step 2 of [Adding a new GMM environment](#adding-a-new-gmm-environment):
 
         - template: yaml/deploy-pipeline.yml
         parameters:
@@ -749,10 +740,10 @@ To create a production environment:
 
     Note: if you notice the condition section, it states that your non-production environment must deploy successfully for your production environment to deploy.
 
-3. Add the following variables to your pipeline as you did in step 11 of [Creating a Pipeline](##-Create-an-Azure-DevOps-pipeline):
+3. Add the following variables to your pipeline as you did in step 11 of [Creating a Pipeline](#create-an-azure-devops-pipeline):
 
     * `subscriptionId_prod` - This is the subscription Id of your production environment.
-    * `keyVaultReaders_prod` - This is a list of service principals that will have access to the keyvaults in non-production environments. Within this list, you are required to have your own Azure user id and the id of your environment's service connection; any other value is optional. This variable's value is a JSON string that represents an array. Use the same format used for `keyVaultReaders_nonprod` in step 11 of [Creating a Pipeline](##-Create-an-Azure-DevOps-pipeline:).
+    * `keyVaultReaders_prod` - This is a list of service principals that will have access to the keyvaults in non-production environments. Within this list, you are required to have your own Azure user id and the id of your environment's service connection; any other value is optional. This variable's value is a JSON string that represents an array. Use the same format used for `keyVaultReaders_nonprod` in step 11 of [Creating a Pipeline](#create-an-azure-devops-pipeline).
 
 
 # Using GMM
@@ -776,13 +767,13 @@ To add the application as an owner of a group, follow the next steps:
 
 A synchronization job must have the following properties populated:
 
-- PartitionKey
-- RowKey
 - Requestor
+- Destination
 - TargetOfficeGroupId
 - Status
 - LastRunTime
 - LastSuccessfulRunTime
+- LastSuccessfulStartTime
 - Period
 - Query
 - StartDate
@@ -792,10 +783,10 @@ A synchronization job must have the following properties populated:
 - IsDryRunEnabled
 - DryRunTimeStamp
 
-See [syncJobs properties](./Documentation/syncJobsProperties.md) for more information.
+See [syncJobs properties](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/syncJobsProperties.md) for more information.
 
 
-A PowerShell script [New-GmmGroupMembershipSyncJob.ps1](/Service/GroupMembershipManagement/Hosts/GroupMembershipObtainer/Scripts/New-GmmGroupMembershipSyncJob.ps1) is provided to help you create the synchronization jobs.
+A PowerShell script [New-GmmGroupMembershipSyncJob.ps1](/Scripts/New-GmmGroupMembershipSyncJob.ps1) is provided to help you create the synchronization jobs.
 
 The Query field requires a JSON object that must follow this format:
 
@@ -815,7 +806,7 @@ The Query field requires a JSON object that must follow this format:
     }
 ]
 ```
-The script can be found in \Service\GroupMembershipManagement\Hosts\GroupMembershipObtainer\Scripts folder.
+From your `PowerShell 7.x` command prompt navigate to [New-GmmGroupMembershipSyncJob.ps1](/Scripts/New-GmmGroupMembershipSyncJob.ps1), run these commands, and follow the instructions on the screen:
 
     1. . ./New-GmmGroupMembershipSyncJob.ps1
     2. New-GmmGroupMembershipSyncJob	-SubscriptionName "<SubscriptionName>" `
@@ -823,17 +814,18 @@ The script can be found in \Service\GroupMembershipManagement\Hosts\GroupMembers
 							-EnvironmentAbbreviation "<EnvironmentAbbreviation>" `
 							-Requestor "<RequestorEmailAddress>" `
 							-TargetOfficeGroupId "<DestinationGroupObjectId>" `
+                            -Destination "<JSON string>" `
 							-Query "<JSON string>" `
 							-Period <in hours, integer only> `
 							-ThresholdPercentageForAdditions <integer only> `
 							-ThresholdPercentageForRemovals <integer only> `
 							-Verbose
 
-You can also use Microsoft Azure Storage Explorer to add, edit or delete synchronization jobs. See [Get started with Storage Explorer](https://docs.microsoft.com/en-us/azure/vs-azure-tools-storage-manage-with-storage-explorer?tabs=windows).
+You can also add, edit or delete synchronization jobs via `SyncJobs` SQL table`.
 
 ### Setting up the NonProdService function
 
-The NonProdService function will create and populate test groups in the tenant for use in GMM integration testing (or for sources in your own manual tests as well). See [Setting up NonProdService function](./Service/GroupMembershipManagement/Hosts/NonProdService/Documentation/README.md).
+The NonProdService function will create and populate test groups in the tenant for use in GMM integration testing (or for sources in your own manual tests as well). See [Setting up NonProdService function](https://github.com/microsoftgraph/group-membership-management/blob/main/Service/GroupMembershipManagement/Hosts/NonProdService/Documentation/README.md).
 ### Dry Run Settings
 
 Dry run settings are present in GMM to provide users the ability to test new changes without affecting the group membership. This configuration is present in the application configuration table.
@@ -844,65 +836,28 @@ There are 3 Dry Run flags in GMM. If any of these Dry run flags are set, the syn
 2. GroupMembershipObtainer:IsDryRunEnabled: This is a property that is set in the app configuration table. Setting this to true will run all Security Group syncs in dry run.
 3. IsMembershipAggregatorDryRunEnabled: This is a property that is set in the app configuration table. Setting this to true will run all syncs in dry run.
 
-# Setting AzureMaintenance function
-the `<SolutionAbbreviation>`-compute-`<EnvironmentAbbreviation>`-AzureMaintenance function can create backups for Azure Storage Tables and delete older backups automatically.
-Out of the box, the AzureMaintenance function will backup the `syncJobs` table; where all the groups' sync parameters are defined. The function is set to run every day at midnight and will delete backups older than 30 days.
-
-The function reads the backup configuration settings from the data keyvault (`<SolutionAbbreviation>`-data-`<EnvironmentAbbreviation>`), specifically from a secret named 'maintenanceJobs' which is a string that represents a json array of backup configurations.
-
-    [
-        {
-            "SourceStorageSetting":
-            {
-                "TargetName": "<table-name>",
-                "StorageConnectionString": "<connection-string>",
-                "StorageType": "Table"
-            },
-            "DestinationStorageSetting":
-            {
-                "TargetName": "<table-name>",
-                "StorageConnectionString": "<connection-string>",
-                "StorageType": "Table"
-            },
-            "Backup": true,
-            "Cleanup": true,
-            "DeleteAfterDays": 30
-        }
-    ]
-
-The default configuration for the 'syncJobs' table is generated via an ARM template. For more details see the respective ARM template located under Service\GroupMembershipManagement\Hosts\AzureMaintenance\Infrastructure\data\template.bicep
-
-The run frequency is set to every day at midnight, it is defined as a NCRONTAB expression in the application setting named 'backupTriggerSchedule' which can be updated on the Azure Portal, it's located under the Configuration blade for `<SolutionAbbreviation>`-compute-`<EnvironmentAbbreviation>`-AzureMaintenance Function App. Additionally,  it can be updated directly in the respective ARM template located under Service\GroupMembershipManagement\Hosts\AzureMaintenance\Infrastructure\compute\template.bicep
-
 # Setting GroupOwnershipObtainer function
-[GroupOwnershipObtainer function](Service\GroupMembershipManagement\Hosts\GroupOwnershipObtainer\Documentation\GroupOwnershipObtainer.md)
+[GroupOwnershipObtainer function](https://github.com/microsoftgraph/group-membership-management/blob/main/Service/GroupMembershipManagement/Hosts/GroupOwnershipObtainer/Documentation/GroupOwnershipObtainer.md)
 
 # Setting GMM in a demo tenant
 
-In the event that you are setting up GMM in a demo tenant refer to [Setting GMM in a demo tenant](/Documentation/DemoTenant.md) for additional guidance.
+In the event that you are setting up GMM in a demo tenant refer to [Setting GMM in a demo tenant](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/DemoTenant.md) for additional guidance.
 
 # Setting up WebAPI and GMM UI
 
-Please refer to [Create React App](UI/web-app/README.md) for additional guidance.  
-Please refer to [WebAPI](Service/GroupMembershipManagement/Hosts/WebApi/Documentation/WebApiSetup.md) for additional guidance.  
-Please refer to [GMM UI](UI/Documentation/UISetup.md) for additional guidance.
-
-# Create the jobs table in SQL database
-
-* Go to https://`<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi.azurewebsites.net/swagger/index.html
-* Hit the endpoint `admin/databaseMigration`. This will create the jobs table in `<solutionAbbreviation>`-data-`<environmentAbbreviation>`-jobs database
-    * *Note: To hit the endpoint, update the value of config setting `ConnectionStrings:JobsContext` in `<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi with the value of `jobsMSIConnectionString` which you can find in your data key vault*
-* Run [this script](/Infrastructure/Copy-SyncJobsToSQL.ps1) to copy the jobs from storage account to sql database
+Please refer to [Create React App](https://github.com/microsoftgraph/group-membership-management/blob/main/UI/web-app/README.md) for additional guidance.
+Please refer to [WebAPI](https://github.com/microsoftgraph/group-membership-management/blob/main/Service/GroupMembershipManagement/Hosts/WebApi/Documentation/WebApiSetup.md) for additional guidance.
+Please refer to [GMM UI](https://github.com/microsoftgraph/group-membership-management/blob/main/UI/Documentation/UISetup.md) for additional guidance.
 
 # Steps to debug and troubleshoot a failing sync
 
 To troubleshoot any issues that might occur we can use Log Analytics and Application Insights.
 
-1. Find Logs in the Log analytics workspace following the instructions [here](/Documentation/FindLogEntriesInLogAnalyticsForASync.md).
-2. Find failures and exceptions with Application Insights [here](/Documentation/TroubleshootWithApplicationInsights.md).
+1. Find Logs in the Log analytics workspace following the instructions [here](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/FindLogEntriesInLogAnalyticsForASync.md).
+2. Find failures and exceptions with Application Insights [here](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/TroubleshootWithApplicationInsights.md).
 
 # Tearing down your GMM environment.
-In the event that you want to reset the GMM environment refer to [Delete GMM environment](/Documentation/DeleteEnvironment.md) for additional guidance.
+In the event that you want to reset the GMM environment refer to [Delete GMM environment](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/DeleteEnvironment.md) for additional guidance.
 
 # Breaking changes
-See [Breaking changes](breaking_changes.md)
+See [Breaking changes](https://github.com/microsoftgraph/group-membership-management/blob/main/breaking_changes.md)
