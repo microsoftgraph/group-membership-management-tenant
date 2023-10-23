@@ -223,7 +223,7 @@ From your `PowerShell 7.x` command prompt navigate to the `Scripts` folder of yo
 Follow the instructions on the screen.
 
 Note:
-* AppTenantId <app-tenant-id> - If the application is going to be installed in a different tenant, set that tenant id here.
+* AppTenantId <app-tenant-id> - If the application is going to be installed in a different tenant, set that tenant id here. Refer to [Setting GMM in a demo tenant](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/DemoTenant.md) if you want to set up a demo tenant.
 * KeyVaultTenantId <keyvault-tenant-id> - This is the tenant where your GMM resources are located, i.e. keyvaults, storage account.
 * If you only have one tenant, these will be set to the same tenant id.
 
@@ -488,7 +488,7 @@ The following PowerShell scripts create a Service Principal and set up a Service
 
 4. Give service connection access to the keyvaults
 
-    Go to your <SolutionAbbreviation>-prereqs-<EnvironmentAbbreviation> keyvault > Click on 'Access policies' > Click on Create > Select Get, List, and Set secrets permissions and then add your <SolutionAbbreviation>-serviceconnection-<EnvironmentAbbreviation> as the principal.
+    Go to your `<SolutionAbbreviation>`-prereqs-`<EnvironmentAbbreviation>` keyvault > Click on 'Access policies' > Click on Create > Select Get, List, and Set secrets permissions and then add your `<SolutionAbbreviation>`-serviceconnection-`<EnvironmentAbbreviation>` as the principal.
 
 5. For testing purposes, "`<SolutionAbbreviation>`-serviceconnection-`<EnvironmentAbbreviation>`" must be assigned the 'Owner' role in your data resource group to successfully run the pipeline. Please note that this is for testing only and is not recommended for production use. In a production environment or when operating as a company, it is advised to define a custom role that aligns with the principle of least privilege for enhanced security. This custom role should only provide the minimum permissions necessary for the pipeline to function correctly, thereby minimizing potential security risks.
 
@@ -647,6 +647,7 @@ SyncJobs DB
 ```
 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = N'<SolutionAbbreviation>-serviceconnection-<EnvironmentAbbreviation>')
 BEGIN
+    CREATE USER [<SolutionAbbreviation>-serviceconnection-<EnvironmentAbbreviation>] FROM EXTERNAL PROVIDER
     ALTER ROLE db_datareader ADD MEMBER [<SolutionAbbreviation>-serviceconnection-<EnvironmentAbbreviation>] -- gives permission to read to database
     ALTER ROLE db_datawriter ADD MEMBER [<SolutionAbbreviation>-serviceconnection-<EnvironmentAbbreviation>] -- gives permission to write to database
 END
