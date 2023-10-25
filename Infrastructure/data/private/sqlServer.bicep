@@ -77,10 +77,10 @@ resource sqlSourceDataBase 'Microsoft.Sql/servers/databases@2021-02-01-preview' 
   parent: sqlServer
   location: location
   sku: {
-    name: 'GP_S_Gen5'
-    tier: 'GeneralPurpose'
-    family: 'Gen5'
-    capacity: 4
+    name: 'Basic'
+    tier: 'Basic'
+    family: ''
+    capacity: 0
   }
 }
 
@@ -89,10 +89,10 @@ resource sqlDestinationDataBase 'Microsoft.Sql/servers/databases@2021-02-01-prev
   parent: sqlServer
   location: location
   sku: {
-    name: 'GP_S_Gen5'
-    tier: 'GeneralPurpose'
-    family: 'Gen5'
-    capacity: 4
+    name: 'Basic'
+    tier: 'Basic'
+    family: ''
+    capacity: 0
   }
 }
 
