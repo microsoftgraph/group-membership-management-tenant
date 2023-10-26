@@ -64,9 +64,6 @@ stages:
        name: 'TeamsChannel'
        coverageThreshold: 72
     - function:
-       name: 'AzureMaintenance'
-       coverageThreshold: 95
-    - function:
        name: 'AzureUserReader'
        coverageThreshold: 68
     - function:
@@ -95,7 +92,6 @@ stages:
     - name: 'AzureUserReader'
     - name: 'JobScheduler'
     - name: 'MembershipAggregator'
-    - name: 'AzureMaintenance'
     - name: 'Notifier'
     - name: 'GroupOwnershipObtainer'
 
@@ -158,8 +154,6 @@ stages:
        name: 'TeamsChannel'
        dependsOn:
        - 'MembershipAggregator'
-    - function:
-       name: 'AzureMaintenance'
     - function:
        name: 'JobTrigger'
        dependsOn:
