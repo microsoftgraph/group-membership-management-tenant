@@ -32,11 +32,17 @@ Sets the frequency for the job execution. In hours. Integers only. Default is 6 
 
 .PARAMETER Query
 This value depends on the type of sync job.  See example below for details.
+
+Query of GroupMembership type
+
 Single Source
 [{"type":"GroupMembership","source":"<group-object-id>"}]
 
 Multiple Sources
 [{"type":"GroupMembership","source":"<group-object-id-1>"},{"type":"GroupMembership","source":"<group-object-id-2>"}]
+
+Query of SqlMembership type
+[{"type":"SqlMembership","source":{"filter":"(Email = ''''XYZ'''')"}}]
 
 .PARAMETER ThresholdPercentageForAdditions
 This value determines threshold percentage for users being added.  Default value is 100 unless specified in the sync request. See example below for details.
@@ -96,7 +102,6 @@ function New-GmmGroupMembershipSyncJob {
 	)
 	"New-GmmGroupMembershipSyncJob starting..."
 
-	$resourceGroupName = "$SolutionAbbreviation-data-$EnvironmentAbbreviation"
 	$dataKeyVaultName = "$SolutionAbbreviation-data-$EnvironmentAbbreviation"
     $sqlDatabaseConnectionString = Get-AzKeyVaultSecret -VaultName $dataKeyVaultName -Name "sqlDatabaseConnectionString" -AsPlainText
 	$context = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile.DefaultContext
@@ -106,9 +111,6 @@ function New-GmmGroupMembershipSyncJob {
 		Write-Host "Please sign into an account that can read the display names of groups in the $GroupTenantId tenant."
 		Add-AzAccount -Tenant $GroupTenantId
 	}
-
-	$targetGroup = Get-AzADGroup -ObjectId $TargetOfficeGroupId
-	$now = Get-Date
 
 	if ($Null -eq $StartDate)
 	{
