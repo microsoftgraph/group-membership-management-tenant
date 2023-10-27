@@ -58,6 +58,9 @@ stages:
        name: 'GroupMembershipObtainer'
        coverageThreshold: 89
     - function:
+       name: 'SqlMembershipObtainer'
+       coverageThreshold: 50
+    - function:
        name: 'TeamsChannel'
        coverageThreshold: 72
     - function:
@@ -87,6 +90,7 @@ stages:
     - name: 'JobTrigger'
     - name: 'GraphUpdater'
     - name: 'GroupMembershipObtainer'
+    - name: 'SqlMembershipObtainer'
     - name: 'TeamsChannel'
     - name: 'AzureUserReader'
     - name: 'JobScheduler'
@@ -143,6 +147,10 @@ stages:
        dependsOn:
        - 'MembershipAggregator'
     - function:
+       name: 'SqlMembershipObtainer'
+       dependsOn:
+       - 'MembershipAggregator'
+    - function:
        name: 'GroupOwnershipObtainer'
        dependsOn:
        - 'MembershipAggregator'
@@ -155,7 +163,7 @@ stages:
     - function:
        name: 'JobTrigger'
        dependsOn:
-       - 'MembershipAggregator'
+       - 'SqlMembershipObtainer'
     - function:
        name: 'Notifier'
     deployJobScheduler: true
