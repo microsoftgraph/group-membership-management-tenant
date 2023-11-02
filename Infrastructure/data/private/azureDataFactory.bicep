@@ -13,6 +13,10 @@ param sqlServerName string
 @secure()
 param sqlAdminPassword string
 
+@description('Connection string of adf storage account')
+@secure()
+param storageAccountConnectionString string
+
 resource dataFactory 'Microsoft.DataFactory/factories@2018-06-01' = {
   name: factoryName
   identity: {
@@ -29,13 +33,27 @@ resource dataFactory 'Microsoft.DataFactory/factories@2018-06-01' = {
   location: location
 }
 
+resource factoryName_AzureBlobStorage 'Microsoft.DataFactory/factories/linkedServices@2018-06-01' = {
+  name: '${factoryName}/AzureBlobStorage'
+  properties: {
+    annotations: []
+    type: 'AzureBlobStorage'
+    typeProperties: {
+      connectionString: storageAccountConnectionString
+    }
+  }
+  dependsOn: [
+    dataFactory
+  ]
+}
+
 resource factoryName_DestinationDatabase 'Microsoft.DataFactory/factories/linkedServices@2018-06-01' = {
   name: '${factoryName}/DestinationDatabase'
   properties: {
     annotations: []
     type: 'SqlServer'
     typeProperties: {
-      connectionString: 'Server=tcp:${sqlServerName}.database.windows.net,1433;Initial Catalog=DestinationDataBase;Persist Security Info=False;User ID=SQLDBAdmin;Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+      connectionString: 'Server=tcp:${sqlServerName}.database.windows.net,1433;Initial Catalog=DestinationDatabase;Persist Security Info=False;User ID=SQLDBAdmin;Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
     }
   }
   dependsOn: [
@@ -43,100 +61,14 @@ resource factoryName_DestinationDatabase 'Microsoft.DataFactory/factories/linked
   ]
 }
 
-resource factoryName_SourceDatabase 'Microsoft.DataFactory/factories/linkedServices@2018-06-01' = {
-  name: '${factoryName}/SourceDatabase'
-  properties: {
-    annotations: []
-    type: 'SqlServer'
-    typeProperties: {
-      connectionString: 'Server=tcp:${sqlServerName}.database.windows.net,1433;Initial Catalog=SourceDataBase;Persist Security Info=False;User ID=SQLDBAdmin;Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
-    }
-  }
-  dependsOn: [
-    dataFactory
-  ]
-}
-
-resource factoryName_NewPipeline 'Microsoft.DataFactory/factories/pipelines@2018-06-01' = {
-  name: '${factoryName}/NewPipeline'
+resource factoryName_PopulateDestinationPipeline 'Microsoft.DataFactory/factories/pipelines@2018-06-01' = {
+  name: '${factoryName}/PopulateDestinationPipeline'
   properties: {
     activities: [
       {
-        name: 'Create Source Table A'
-        type: 'Script'
-        dependsOn: []
-        policy: {
-          timeout: '0.12:00:00'
-          retry: 0
-          retryIntervalInSeconds: 30
-          secureOutput: false
-          secureInput: false
-        }
-        userProperties: []
-        linkedServiceName: {
-          referenceName: 'SourceDatabase'
-          type: 'LinkedServiceReference'
-        }
-        typeProperties: {
-          scripts: [
-            {
-              type: 'Query'
-              text: {
-                value: '@concat(\'\nIF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = \'\'SourceTableA\'\')\nBEGIN\n    CREATE TABLE SourceTableA (\n    EmployeeIdentification int NOT NULL PRIMARY KEY,\n    ManagerIdentification int,\n    Email varchar(255)\n);\nEND;\n\')'
-                type: 'Expression'
-              }
-            }
-          ]
-          scriptBlockExecutionTimeout: '02:00:00'
-        }
-      }
-      {
-        name: 'Create Source Table B'
-        type: 'Script'
-        dependsOn: [
-          {
-            activity: 'Create Source Table A'
-            dependencyConditions: [
-              'Succeeded'
-            ]
-          }
-        ]
-        policy: {
-          timeout: '0.12:00:00'
-          retry: 0
-          retryIntervalInSeconds: 30
-          secureOutput: false
-          secureInput: false
-        }
-        userProperties: []
-        linkedServiceName: {
-          referenceName: 'SourceDatabase'
-          type: 'LinkedServiceReference'
-        }
-        typeProperties: {
-          scripts: [
-            {
-              type: 'Query'
-              text: {
-                value: '@concat(\'\nIF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = \'\'SourceTableB\'\')\nBEGIN\n    CREATE TABLE SourceTableB (\n    Id int NOT NULL PRIMARY KEY,\n    Profession varchar(255),\n    Level varchar(255),\n    Location varchar(255),\n    AzureObjectId varchar(255),\n    EmployeeIdentification int FOREIGN KEY REFERENCES SourceTableA(EmployeeIdentification)\n);\nEND;\n\')'
-                type: 'Expression'
-              }
-            }
-          ]
-          scriptBlockExecutionTimeout: '02:00:00'
-        }
-      }
-      {
-        name: 'NewDataFlow'
+        name: 'Data flow1'
         type: 'ExecuteDataFlow'
-        dependsOn: [
-          {
-            activity: 'Create Source Table B'
-            dependencyConditions: [
-              'Succeeded'
-            ]
-          }
-        ]
+        dependsOn: []
         policy: {
           timeout: '0.12:00:00'
           retry: 0
@@ -147,20 +79,19 @@ resource factoryName_NewPipeline 'Microsoft.DataFactory/factories/pipelines@2018
         userProperties: []
         typeProperties: {
           dataFlow: {
-            referenceName: 'NewDataFlow'
+            referenceName: 'PopulateDestinationDataFlow'
             type: 'DataFlowReference'
             parameters: {}
             datasetParameters: {
-              SourceTableA: {}
-              SourceTableB: {}
-              DestinationTable: {
+              memberids: {}
+              memberHRData: {}
+              sink: {
                 TableName: {
                   value: 'tbl@{replace(pipeline().RunId,\'-\',\'\')}'
                   type: 'Expression'
                 }
               }
             }
-            linkedServiceParameters: {}
           }
           staging: {}
           compute: {
@@ -178,80 +109,7 @@ resource factoryName_NewPipeline 'Microsoft.DataFactory/factories/pipelines@2018
   }
   dependsOn: [
     dataFactory
-    factoryName_SourceDatabase
-    factoryName_NewDataFlow
-  ]
-}
-
-resource factoryName_SourceTableA 'Microsoft.DataFactory/factories/datasets@2018-06-01' = {
-  name: '${factoryName}/SourceTableA'
-  properties: {
-    linkedServiceName: {
-      referenceName: 'SourceDatabase'
-      type: 'LinkedServiceReference'
-    }
-    annotations: []
-    type: 'SqlServerTable'
-    schema: [
-      {
-        name: 'EmployeeIdentification'
-        type: 'int'
-        precision: 10
-      }
-      {
-        name: 'ManagerIdentification'
-        type: 'int'
-        precision: 10
-      }
-      {
-        name: 'Email'
-        type: 'varchar'
-      }
-    ]
-    typeProperties: {
-      schema: 'dbo'
-      table: 'SourceTableA'
-    }
-  }
-  dependsOn: [
-    dataFactory
-    factoryName_SourceDatabase
-  ]
-}
-
-resource factoryName_SourceTableB 'Microsoft.DataFactory/factories/datasets@2018-06-01' = {
-  name: '${factoryName}/SourceTableB'
-  properties: {
-    linkedServiceName: {
-      referenceName: 'SourceDatabase'
-      type: 'LinkedServiceReference'
-    }
-    annotations: []
-    type: 'SqlServerTable'
-    schema: [
-      {
-        name: 'EmployeeIdentification'
-        type: 'int'
-        precision: 10
-      }
-      {
-        name: 'ManagerIdentification'
-        type: 'int'
-        precision: 10
-      }
-      {
-        name: 'Email'
-        type: 'varchar'
-      }
-    ]
-    typeProperties: {
-      schema: 'dbo'
-      table: 'SourceTableB'
-    }
-  }
-  dependsOn: [
-    dataFactory
-    factoryName_SourceDatabase
+    factoryName_PopulateDestinationDataFlow
   ]
 }
 
@@ -278,30 +136,119 @@ resource factoryName_DestinationTable 'Microsoft.DataFactory/factories/datasets@
     }
   }
   dependsOn: [
-    dataFactory
     factoryName_DestinationDatabase
   ]
 }
 
-resource factoryName_NewDataFlow 'Microsoft.DataFactory/factories/dataflows@2018-06-01' = {
-  name: '${factoryName}/NewDataFlow'
+resource factoryName_memberHRDatainput 'Microsoft.DataFactory/factories/datasets@2018-06-01' = {
+  name: '${factoryName}/memberHRDatainput'
+  properties: {
+    linkedServiceName: {
+      referenceName: 'AzureBlobStorage'
+      type: 'LinkedServiceReference'
+    }
+    annotations: []
+    type: 'DelimitedText'
+    typeProperties: {
+      location: {
+        type: 'AzureBlobStorageLocation'
+        fileName: 'memberHRData.csv'
+        container: 'csvcontainer'
+      }
+      columnDelimiter: ','
+      escapeChar: '\\'
+      firstRowAsHeader: true
+      quoteChar: '"'
+    }
+    schema: [
+      {
+        name: 'PersonnelNumber'
+        type: 'String'
+      }
+      {
+        name: 'Position'
+        type: 'String'
+      }
+      {
+        name: 'Level'
+        type: 'String'
+      }
+      {
+        name: 'Country'
+        type: 'String'
+      }
+      {
+        name: 'Email'
+        type: 'String'
+      }
+    ]
+  }
+  dependsOn: [
+    dataFactory
+    factoryName_AzureBlobStorage
+  ]
+}
+
+resource factoryName_memberidsinput 'Microsoft.DataFactory/factories/datasets@2018-06-01' = {
+  name: '${factoryName}/memberidsinput'
+  properties: {
+    linkedServiceName: {
+      referenceName: 'AzureBlobStorage'
+      type: 'LinkedServiceReference'
+    }
+    annotations: []
+    type: 'DelimitedText'
+    typeProperties: {
+      location: {
+        type: 'AzureBlobStorageLocation'
+        fileName: 'memberids.csv'
+        container: 'csvcontainer'
+      }
+      columnDelimiter: ','
+      escapeChar: '\\'
+      firstRowAsHeader: true
+      quoteChar: '"'
+    }
+    schema: [
+      {
+        name: 'PersonnelNumber'
+        type: 'String'
+      }
+      {
+        name: 'ManagerPersonnelNumber'
+        type: 'String'
+      }
+      {
+        name: 'AzureObjectId'
+        type: 'String'
+      }
+    ]
+  }
+  dependsOn: [
+    dataFactory
+    factoryName_AzureBlobStorage
+  ]
+}
+
+resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factories/dataflows@2018-06-01' = {
+  name: '${factoryName}/PopulateDestinationDataFlow'
   properties: {
     type: 'MappingDataFlow'
     typeProperties: {
       sources: [
         {
           dataset: {
-            referenceName: 'SourceTableA'
+            referenceName: 'memberidsinput'
             type: 'DatasetReference'
           }
-          name: 'SourceTableA'
+          name: 'memberids'
         }
         {
           dataset: {
-            referenceName: 'SourceTableB'
+            referenceName: 'memberHRDatainput'
             type: 'DatasetReference'
           }
-          name: 'SourceTableB'
+          name: 'memberHRData'
         }
       ]
       sinks: [
@@ -310,43 +257,49 @@ resource factoryName_NewDataFlow 'Microsoft.DataFactory/factories/dataflows@2018
             referenceName: 'DestinationTable'
             type: 'DatasetReference'
           }
-          name: 'DestinationTable'
+          name: 'sink'
         }
       ]
       transformations: [
         {
-          name: 'Join'
+          name: 'join'
         }
       ]
       scriptLines: [
         'source(output('
-        '          EmployeeIdentification as integer,'
-        '          ManagerIdentification as integer,'
+        '          PersonnelNumber as string,'
+        '          ManagerPersonnelNumber as string,'
+        '          AzureObjectId as string'
+        '     ),'
+        '     allowSchemaDrift: true,'
+        '     validateSchema: false,'
+        '     ignoreNoFilesFound: false) ~> memberids'
+        'source(output('
+        '          PersonnelNumber as string,'
+        '          Position as string,'
+        '          Level as string,'
+        '          Country as string,'
         '          Email as string'
         '     ),'
         '     allowSchemaDrift: true,'
         '     validateSchema: false,'
-        '     isolationLevel: \'READ_UNCOMMITTED\','
-        '     format: \'table\') ~> SourceTableA'
-        'source(output('
-        '          Id as integer,'
-        '          Profession as string,'
-        '          Level as string,'
-        '          Location as string,'
-        '          AzureObjectId as string,'
-        '          EmployeeIdentification as integer'
-        '     ),'
-        '     allowSchemaDrift: true,'
-        '     validateSchema: false,'
-        '     isolationLevel: \'READ_UNCOMMITTED\','
-        '     format: \'table\') ~> SourceTableB'
-        'SourceTableA, SourceTableB join(SourceTableA@EmployeeIdentification == SourceTableB@EmployeeIdentification,'
-        '     joinType:\'left\','
+        '     ignoreNoFilesFound: false) ~> memberHRData'
+        'memberids, memberHRData join(memberids@PersonnelNumber == memberHRData@PersonnelNumber,'
+        '     joinType:\'inner\','
         '     matchType:\'exact\','
         '     ignoreSpaces: false,'
-        '     broadcast: \'auto\')~> Join'
-        'Join sink(allowSchemaDrift: true,'
+        '     broadcast: \'auto\')~> join'
+        'join sink(allowSchemaDrift: true,'
         '     validateSchema: false,'
+        '     input('
+        '          ObjectId as string,'
+        '          PersonnelNumber as integer,'
+        '          ManagerPersonnelNumber as integer,'
+        '          Country as string,'
+        '          Position as string,'
+        '          Level as integer,'
+        '          Email as string'
+        '     ),'
         '     deletable:false,'
         '     insertable:true,'
         '     updateable:false,'
@@ -354,24 +307,23 @@ resource factoryName_NewDataFlow 'Microsoft.DataFactory/factories/dataflows@2018
         '     format: \'table\','
         '     skipDuplicateMapInputs: true,'
         '     skipDuplicateMapOutputs: true,'
+        '     errorHandlingOption: \'stopOnFirstError\','
         '     mapColumn('
-        '          EmployeeId = SourceTableA@EmployeeIdentification,'
-        '          ManagerId = ManagerIdentification,'
-        '          Email,'
-        '          Profession,'
+        '          ObjectId = AzureObjectId,'
+        '          PersonnelNumber = memberids@PersonnelNumber,'
+        '          ManagerPersonnelNumber,'
+        '          Country,'
+        '          Position,'
         '          Level,'
-        '          Location,'
-        '          AzureObjectId'
-        '     ),'
-        '     partitionBy(\'hash\', 1)) ~> DestinationTable'
+        '          Email'
+        '     )) ~> sink'
       ]
     }
   }
   dependsOn: [
-    dataFactory
-    factoryName_SourceTableA
-    factoryName_SourceTableB
+    factoryName_memberHRDatainput
     factoryName_DestinationTable
+    factoryName_memberidsinput
   ]
 }
 

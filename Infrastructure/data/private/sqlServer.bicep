@@ -14,6 +14,9 @@ param location string
 @description('Tenant Id.')
 param tenantId string
 
+@description('Name of SQL Server')
+param sqlServerName string
+
 @description('Administrator user name')
 param sqlAdminUserName string
 
@@ -27,8 +30,9 @@ param sqlAdministratorsGroupId string
 @description('Administrators Azure AD Group Name')
 param sqlAdministratorsGroupName string
 
-var dataKeyVaultName = '${solutionAbbreviation}-data-${environmentAbbreviation}'
-var sqlServerName = '${solutionAbbreviation}-data-${environmentAbbreviation}-private'
+@description('Key vault name.')
+param keyVaultName string
+
 var logAnalyticsName = '${solutionAbbreviation}-data-${environmentAbbreviation}'
 
 resource sqlServer 'Microsoft.Sql/servers@2022-11-01-preview' = {
@@ -72,27 +76,15 @@ resource sqlServer 'Microsoft.Sql/servers@2022-11-01-preview' = {
   }
 }
 
-resource sqlSourceDataBase 'Microsoft.Sql/servers/databases@2021-02-01-preview' = {
-  name: 'SourceDataBase'
+resource sqlDestinationDatabase 'Microsoft.Sql/servers/databases@2021-02-01-preview' = {
+  name: 'DestinationDatabase'
   parent: sqlServer
   location: location
   sku: {
-    name: 'Basic'
-    tier: 'Basic'
-    family: ''
-    capacity: 0
-  }
-}
-
-resource sqlDestinationDataBase 'Microsoft.Sql/servers/databases@2021-02-01-preview' = {
-  name: 'DestinationDataBase'
-  parent: sqlServer
-  location: location
-  sku: {
-    name: 'Basic'
-    tier: 'Basic'
-    family: ''
-    capacity: 0
+    name: 'GP_S_Gen5'
+    tier: 'GeneralPurpose'
+    family: 'Gen5'
+    capacity: 4
   }
 }
 
@@ -124,7 +116,7 @@ resource diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
 module secureKeyvaultSecrets 'keyVaultSecretsSecure.bicep' = {
   name: 'secureKeyvaultSecrets'
   params: {
-    keyVaultName: dataKeyVaultName
+    keyVaultName: keyVaultName
     keyVaultSecrets: {
       secrets: [
         {
