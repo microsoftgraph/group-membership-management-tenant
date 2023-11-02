@@ -162,7 +162,7 @@ resource factoryName_memberHRDatainput 'Microsoft.DataFactory/factories/datasets
     }
     schema: [
       {
-        name: 'EmployeeId'
+        name: 'EmployeeIdentificationNumber'
         type: 'String'
       }
       {
@@ -211,11 +211,11 @@ resource factoryName_memberidsinput 'Microsoft.DataFactory/factories/datasets@20
     }
     schema: [
       {
-        name: 'EmployeeId'
+        name: 'EmployeeIdentificationNumber'
         type: 'String'
       }
       {
-        name: 'ManagerId'
+        name: 'ManagerIdentificationNumber'
         type: 'String'
       }
       {
@@ -267,15 +267,15 @@ resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factorie
       ]
       scriptLines: [
         'source(output('
-        '          EmployeeId as string,'
-        '          ManagerId as string,'
+        '          EmployeeIdentificationNumber as string,'
+        '          ManagerIdentificationNumber as string,'
         '          AzureObjectId as string'
         '     ),'
         '     allowSchemaDrift: true,'
         '     validateSchema: false,'
         '     ignoreNoFilesFound: false) ~> memberids'
         'source(output('
-        '          EmployeeId as string,'
+        '          EmployeeIdentificationNumber as string,'
         '          Position as string,'
         '          Level as string,'
         '          Country as string,'
@@ -284,7 +284,7 @@ resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factorie
         '     allowSchemaDrift: true,'
         '     validateSchema: false,'
         '     ignoreNoFilesFound: false) ~> memberHRData'
-        'memberids, memberHRData join(memberids@EmployeeId == memberHRData@EmployeeId,'
+        'memberids, memberHRData join(memberids@EmployeeIdentificationNumber == memberHRData@EmployeeIdentificationNumber,'
         '     joinType:\'inner\','
         '     matchType:\'exact\','
         '     ignoreSpaces: false,'
@@ -293,8 +293,8 @@ resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factorie
         '     validateSchema: false,'
         '     input('
         '          ObjectId as string,'
-        '          EmployeeId as integer,'
-        '          ManagerId as integer,'
+        '          EmployeeIdentificationNumber as integer,'
+        '          ManagerIdentificationNumber as integer,'
         '          Country as string,'
         '          Position as string,'
         '          Level as integer,'
@@ -310,8 +310,8 @@ resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factorie
         '     errorHandlingOption: \'stopOnFirstError\','
         '     mapColumn('
         '          ObjectId = AzureObjectId,'
-        '          EmployeeId = memberids@EmployeeId,'
-        '          ManagerId,'
+        '          EmployeeId = memberids@EmployeeIdentificationNumber,'
+        '          ManagerId = memberids@ManagerIdentificationNumber,'
         '          Country,'
         '          Position,'
         '          Level,'

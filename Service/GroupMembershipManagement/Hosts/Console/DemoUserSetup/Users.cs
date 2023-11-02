@@ -85,7 +85,7 @@ namespace DemoUserSetup
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath));  // Ensure the directory exists
 
             using var memberIdsSW = new StreamWriter(fullPath, false);
-            memberIdsSW.WriteLine("EmployeeId,ManagerId,AzureObjectId");
+            memberIdsSW.WriteLine("EmployeeIdentificationNumber,ManagerIdentificationNumber,AzureObjectId");
             foreach (var user in _userIds)
             {
                 int? managerId = null;
@@ -108,7 +108,7 @@ namespace DemoUserSetup
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath));  // Ensure the directory exists
 
             using var memberHRData = new StreamWriter(fullPath, false);
-            memberHRData.WriteLine("PersonnelNumber,Position,Level,Country,Email");
+            memberHRData.WriteLine("EmployeeIdentificationNumber,Position,Level,Country,Email");
             foreach (var user in _userIds)
             {
                 var positionsI = _rng.Next(positions.Count);
