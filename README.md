@@ -258,6 +258,14 @@ From your `PowerShell 7.x` command prompt navigate to the `Scripts` folder of yo
 
 Follow the instructions on the screen.
 
+From your `PowerShell 7.x` command prompt navigate to the `Scripts` folder of your `Private` repo and run these commands:
+
+    1. . ./Set-GMMSqlMembershipAzureADApplication.ps1
+    2. Set-GMMSqlMembershipAzureADApplication	-SubscriptionName "<SubscriptionName>" `
+                                                -SolutionAbbreviation "<SolutionAbbreviation>" `
+                                                -EnvironmentAbbreviation "<EnvironmentAbbreviation>" `
+                                                -Clean $true `
+                                                -Verbose
 
 ### Upload the certificate to your `<solutionAbbreviation>`-Graph-`<environmentAbbreviation>` application.
 
@@ -423,6 +431,7 @@ See [GMM Environments](#gmm-environments) and [ARM templates and parameter files
     * This command will go into each of the `parameters` folders and copy and rename the `parameters.env.json` file to `parameters.<EnvironmentAbbreviation>.json`. These new parameter files will be used to by the ARM templates to deploy the resources of the new environment.
     * You may create an AAD Group and provide the values for sqlAdministratorsGroupId and sqlAdministratorsGroupName in [your param file](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Infrastructure/data/parameters).
     * You also want to provide values for `branch` and `repositoryUrl` in [your UI param file](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Service/GroupMembershipManagement/Hosts/UI/Infrastructure/compute/parameters). You can provide "" for `customDomainName` if you have not set up a custom domain.
+     * You also want to replace values for `<tenant-id>`, `<subscription-id>`, `<data-resource-group-name>` and `<data-key-vault-name>` in SqlMembershipObtainer/Infrastructure/compute/param file.
 
 ### To remove a GMM environment:
 
@@ -602,7 +611,7 @@ Where:
 Azure Functions connect to SQL server via MSI (System Identity), once the database is created as part of the deployment we need to grant access to the functions to read and write to the database.
 
 For these functions:
-JobTrigger, GroupMembershipObtainer, AzureMaintenance, PlaceMembershipObtainer*, AzureUserReader, GraphUpdater, JobScheduler, MembershipAggregator, NonProdService, Notifier, GroupOwnershipObtainer, TeamsChannelMembershipObtainer, TeamsChannelUpdater
+JobTrigger, GroupMembershipObtainer, SqlMembershipObtainer, AzureMaintenance, PlaceMembershipObtainer*, AzureUserReader, GraphUpdater, JobScheduler, MembershipAggregator, NonProdService, Notifier, GroupOwnershipObtainer, TeamsChannelMembershipObtainer, TeamsChannelUpdater
 
 Run this commands, in your SQL Server database where the jobs table was created:
 
@@ -682,6 +691,8 @@ Open your jobs storage account on Azure Explorer:
     * Go to the table and click on `Import` at the top bar
     * Import the `thresholdNotificationSample.csv` file located under the `Documentation` folder of your `Public` repo
     * IMPORTANT: Remove the sample entry from the table before proceeding
+
+#### * Please follow Post Deployment tasks on SqlMembershipObtainer/Documentation/README.md
 
 ## (Optional) Set up a production environment
 
