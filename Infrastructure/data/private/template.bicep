@@ -30,7 +30,7 @@ param storageAccountSku string = 'Standard_LRS'
 param storageAccountContainerName string = 'csvcontainer'
 
 @description('Name of SQL Server')
-param sqlServerName string = '${solutionAbbreviation}-data-${environmentAbbreviation}-private'
+param sqlServerName string = '${solutionAbbreviation}-data-${environmentAbbreviation}-destination'
 
 @description('Name of Azure Data Factory')
 param azureDataFactoryName string = '${solutionAbbreviation}-data-${environmentAbbreviation}-adf'
@@ -63,6 +63,7 @@ module sqlServer 'sqlServer.bicep' =  {
     solutionAbbreviation: solutionAbbreviation    
     keyVaultName: dataKeyVaultName
     sqlServerName: sqlServerName
+    sqlDatabaseName: sqlServerName
     sqlAdminUserName:  sqlAdminUserName
     sqlAdminPassword: sqlAdminPassword
     sqlAdministratorsGroupId: sqlAdministratorsGroupId

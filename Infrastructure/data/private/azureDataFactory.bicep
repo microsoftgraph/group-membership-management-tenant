@@ -53,7 +53,7 @@ resource factoryName_DestinationDatabase 'Microsoft.DataFactory/factories/linked
     annotations: []
     type: 'SqlServer'
     typeProperties: {
-      connectionString: 'Server=tcp:${sqlServerName}.database.windows.net,1433;Initial Catalog=DestinationDatabase;Persist Security Info=False;User ID=SQLDBAdmin;Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+      connectionString: 'Server=tcp:${sqlServerName}.database.windows.net,1433;Initial Catalog=${sqlServerName};Persist Security Info=False;User ID=SQLDBAdmin;Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
     }
   }
   dependsOn: [
@@ -264,12 +264,15 @@ resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factorie
         {
           name: 'join'
         }
+        {
+          name: 'derivedColumn1'
+        }
       ]
       scriptLines: [
         'source(output('
         '          EmployeeIdentificationNumber as string,'
         '          ManagerIdentificationNumber as string,'
-        '          AzureObjectId as string'
+        '          AzureObjectId as string' 
         '     ),'
         '     allowSchemaDrift: true,'
         '     validateSchema: false,'
@@ -285,21 +288,15 @@ resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factorie
         '     validateSchema: false,'
         '     ignoreNoFilesFound: false) ~> memberHRData'
         'memberids, memberHRData join(memberids@EmployeeIdentificationNumber == memberHRData@EmployeeIdentificationNumber,'
-        '     joinType:\'inner\','
+        '     joinType:\'left\','
         '     matchType:\'exact\','
         '     ignoreSpaces: false,'
         '     broadcast: \'auto\')~> join'
-        'join sink(allowSchemaDrift: true,'
+        'join derive(EmployeeIdentificationNumber = toInteger(memberids@EmployeeIdentificationNumber),'
+        '          ManagerIdentificationNumber = toInteger(ManagerIdentificationNumber),'
+        '          Level = toInteger(Level)) ~> derivedColumn1'
+        'derivedColumn1 sink(allowSchemaDrift: true,'
         '     validateSchema: false,'
-        '     input('
-        '          ObjectId as string,'
-        '          EmployeeIdentificationNumber as integer,'
-        '          ManagerIdentificationNumber as integer,'
-        '          Country as string,'
-        '          Position as string,'
-        '          Level as integer,'
-        '          Email as string'
-        '     ),'
         '     deletable:false,'
         '     insertable:true,'
         '     updateable:false,'
@@ -307,11 +304,10 @@ resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factorie
         '     format: \'table\','
         '     skipDuplicateMapInputs: true,'
         '     skipDuplicateMapOutputs: true,'
-        '     errorHandlingOption: \'stopOnFirstError\','
         '     mapColumn('
-        '          ObjectId = AzureObjectId,'
-        '          EmployeeId = memberids@EmployeeIdentificationNumber,'
-        '          ManagerId = memberids@ManagerIdentificationNumber,'
+        '          AzureObjectId,'
+        '          EmployeeId = EmployeeIdentificationNumber,'
+        '          ManagerId = ManagerIdentificationNumber,'
         '          Country,'
         '          Position,'
         '          Level,'
