@@ -55,11 +55,17 @@ stages:
        name: 'GraphUpdater'
        coverageThreshold: 74
     - function:
+       name: 'TeamsChannelUpdater'
+       coverageThreshold: 69
+    - function:
        name: 'GroupMembershipObtainer'
        coverageThreshold: 89
     - function:
        name: 'SqlMembershipObtainer'
        coverageThreshold: 50
+    - function:
+       name: 'TeamsChannelMembershipObtainer'
+       coverageThreshold: 72
     - function:
        name: 'TeamsChannel'
        coverageThreshold: 72
@@ -88,12 +94,14 @@ stages:
     - name: 'GraphUpdater'
     - name: 'GroupMembershipObtainer'
     - name: 'SqlMembershipObtainer'
+    - name: 'TeamsChannelMembershipObtainer'
     - name: 'TeamsChannel'
     - name: 'AzureUserReader'
     - name: 'JobScheduler'
     - name: 'MembershipAggregator'
     - name: 'Notifier'
     - name: 'GroupOwnershipObtainer'
+    - name: 'TeamsChannelUpdater'
 
 - template: yaml/copy-deploy-webapp.yml
   parameters:
@@ -133,9 +141,12 @@ stages:
     - function:
        name: 'GraphUpdater'
     - function:
+       name: 'TeamsChannelUpdater'
+    - function:
        name: 'MembershipAggregator'
        dependsOn:
        - 'GraphUpdater'
+       - 'TeamsChannelUpdater'
     - function:
        name: 'AzureUserReader'
     - function:
@@ -160,7 +171,7 @@ stages:
        - 'SqlMembershipObtainer'
     - function:
        name: 'Notifier'
-    deployJobScheduler: true
+    deployJobScheduler: false
     condition: |
       and(
         succeeded('Build_Common'),
