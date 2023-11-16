@@ -55,7 +55,7 @@ namespace DemoUserSetup
                 HandleExistingUsers(usersResponse.Value);
             }
 
-            
+
             Stopwatch timer = Stopwatch.StartNew();
             for (int i = 0; i < _testUsers.Length; i++)
             {
@@ -73,32 +73,25 @@ namespace DemoUserSetup
 
             CreateFiles();
             Console.WriteLine("Done!");
-            
+
         }
 
         private void CreateFiles()
         {
             string relativePath = @"..\..\..\output"; // Navigate up two levels and then into the 'output' folder
             string basePath = AppDomain.CurrentDomain.BaseDirectory; // Gets the base directory of the application
-      
+
             string fullPath = Path.Combine(basePath, relativePath, "memberids.csv");
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath));  // Ensure the directory exists
 
             using var memberIdsSW = new StreamWriter(fullPath, false);
-            memberIdsSW.WriteLine("EmployeeIdentificationNumber,ManagerIdentificationNumber,AzureObjectId");
+            memberIdsSW.WriteLine("EmployeeIdentificationNumber");
             foreach (var user in _userIds)
             {
-                int? managerId = null;
-                if (user.Key != "0")
-                {
-                    managerId = (Int32.Parse(user.Key) - 1) / 2;
-                }
-
-                memberIdsSW.WriteLine($"{user.Key},{managerId},{user.Value}");
+                memberIdsSW.WriteLine($"{user.Key}");
             }
             memberIdsSW.Flush();
             memberIdsSW.Close();
-
 
             List<string> positions = new List<string> { "Program Manager", "Software Engineer", "Sales"};
             List<string> countries = new List<string> { "United States", "Brasil", "Germany", "India", "Australia", "Korea" };
@@ -108,15 +101,19 @@ namespace DemoUserSetup
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath));  // Ensure the directory exists
 
             using var memberHRData = new StreamWriter(fullPath, false);
-            memberHRData.WriteLine("EmployeeIdentificationNumber,Position,Level,Country,Email");
+            memberHRData.WriteLine("EmployeeIdentificationNumber,ManagerIdentificationNumber,Position,Level,Country");
             foreach (var user in _userIds)
             {
+                int? managerId = null;
+                if (user.Key != "0")
+                {
+                    managerId = (Int32.Parse(user.Key) - 1) / 2;
+                }
+
                 var positionsI = _rng.Next(positions.Count);
                 var countriesI = _rng.Next(countries.Count);
                 var level = user.Key == "0" ? 9 : _rng.Next(8) + 1;
-                var email = _testUsers[Int32.Parse(user.Key)].Mail;
-                Console.WriteLine($"Email: {email}");
-                memberHRData.WriteLine($"{user.Key},{positions[positionsI]},{level},{countries[countriesI]},{email}");
+                memberHRData.WriteLine($"{user.Key},{managerId},{positions[positionsI]},{level},{countries[countriesI]}");
             }
             memberHRData.Flush();
             memberHRData.Close();
@@ -201,8 +198,6 @@ namespace DemoUserSetup
             {
                 Console.WriteLine($"Error: {error.Message}");
             }
-            
-            
         }
 
         private static AzureADUser ToEntity(User user)
