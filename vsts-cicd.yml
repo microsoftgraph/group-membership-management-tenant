@@ -67,9 +67,6 @@ stages:
        name: 'TeamsChannelMembershipObtainer'
        coverageThreshold: 72
     - function:
-       name: 'TeamsChannel'
-       coverageThreshold: 72
-    - function:
        name: 'AzureUserReader'
        coverageThreshold: 68
     - function:
@@ -95,7 +92,6 @@ stages:
     - name: 'GroupMembershipObtainer'
     - name: 'SqlMembershipObtainer'
     - name: 'TeamsChannelMembershipObtainer'
-    - name: 'TeamsChannel'
     - name: 'AzureUserReader'
     - name: 'JobScheduler'
     - name: 'MembershipAggregator'
@@ -162,7 +158,7 @@ stages:
        dependsOn:
        - 'MembershipAggregator'
     - function:
-       name: 'TeamsChannel'
+       name: 'TeamsChannelMembershipObtainer'
        dependsOn:
        - 'MembershipAggregator'
     - function:
