@@ -235,3 +235,32 @@ stages:
               resourceGroupName: ${{parameters.solutionAbbreviation}}-compute-${{parameters.environmentAbbreviation}}
               sourceSlot: staging
               swapWithProduction: true
+
+    - job: ${{ parameters.stageName }}_DeployADF
+      dependsOn:
+      - ${{ parameters.stageName }}_DeployFunction_AzureUserReader
+      condition: succeeded()
+      variables:
+        ${{ if in(parameters.stageName, 'Prod_production', 'NonProd_ua') }}:
+          buildType: 'release'
+        ${{ else }}:
+          buildType: 'debug'
+      steps:
+        - task: DownloadBuildArtifacts@0
+          inputs:
+            buildType: 'current'
+            downloadType: 'single'
+            artifactName: $(Build.BuildNumber)_$(buildType)
+
+        - template: deploy-adf-resources.yml
+          parameters:
+            solutionAbbreviation: ${{ parameters.solutionAbbreviation }}
+            environmentAbbreviation: ${{ parameters.environmentAbbreviation }}
+            serviceConnection: ${{ parameters.serviceConnection }}
+            root:  $(System.ArtifactsDirectory)/$(Build.BuildNumber)_$(buildType)
+            location: ${{ parameters.location }}
+            tenantId: ${{ parameters.tenantId }}
+            subscriptionName: ${{ parameters.subscriptionName }}
+            subscriptionId: ${{ parameters.subscriptionId }}
+            keyVaultReaders: ${{ parameters.keyVaultReaders }}
+            stageName: ${{ parameters.stageName }}

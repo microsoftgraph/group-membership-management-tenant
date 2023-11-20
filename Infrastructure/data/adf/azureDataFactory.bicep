@@ -13,6 +13,14 @@ param sqlServerName string
 @secure()
 param sqlAdminPassword string
 
+@description('AzureUserReader function url.')
+@secure()
+param azureUserReaderUrl string
+
+@description('AzureUserReader function key.')
+@secure()
+param azureUserReaderFunctionKey string
+
 @description('Connection string of adf storage account')
 @secure()
 param storageAccountConnectionString string
@@ -33,7 +41,7 @@ resource dataFactory 'Microsoft.DataFactory/factories@2018-06-01' = {
   location: location
 }
 
-resource factoryName_AzureBlobStorage 'Microsoft.DataFactory/factories/linkedServices@2018-06-01' = {
+resource linkedService_AzureBlobStorage 'Microsoft.DataFactory/factories/linkedServices@2018-06-01' = {
   name: '${factoryName}/AzureBlobStorage'
   properties: {
     annotations: []
@@ -47,7 +55,7 @@ resource factoryName_AzureBlobStorage 'Microsoft.DataFactory/factories/linkedSer
   ]
 }
 
-resource factoryName_DestinationDatabase 'Microsoft.DataFactory/factories/linkedServices@2018-06-01' = {
+resource linkedService_DestinationDatabase 'Microsoft.DataFactory/factories/linkedServices@2018-06-01' = {
   name: '${factoryName}/DestinationDatabase'
   properties: {
     annotations: []
@@ -61,14 +69,67 @@ resource factoryName_DestinationDatabase 'Microsoft.DataFactory/factories/linked
   ]
 }
 
-resource factoryName_PopulateDestinationPipeline 'Microsoft.DataFactory/factories/pipelines@2018-06-01' = {
+resource linkedService_AzureUserReader 'Microsoft.DataFactory/factories/linkedServices@2018-06-01' = {
+  name: '${factoryName}/AzureUserReader'
+  properties: {
+    annotations: []
+    type: 'AzureFunction'
+    typeProperties: {
+      functionAppUrl: azureUserReaderUrl
+      functionKey: {
+        type: 'SecureString'
+        value: azureUserReaderFunctionKey
+      }
+      authentication: 'Anonymous'
+    }
+  }
+  dependsOn: []
+}
+
+resource Pipeline_PopulateDestinationPipeline 'Microsoft.DataFactory/factories/pipelines@2018-06-01' = {
   name: '${factoryName}/PopulateDestinationPipeline'
   properties: {
     activities: [
       {
-        name: 'Data flow1'
-        type: 'ExecuteDataFlow'
+        name: 'AzureUserReader'
+        type: 'AzureFunctionActivity'
         dependsOn: []
+        policy: {
+          timeout: '0.12:00:00'
+          retry: 0
+          retryIntervalInSeconds: 30
+          secureOutput: false
+          secureInput: false
+        }
+        userProperties: []
+        typeProperties: {
+          functionName: {
+            value: 'StarterFunction'
+            type: 'Expression'
+          }
+          method: 'POST'
+          headers: {}
+          body: {
+            value: '{"ContainerName":"csvcontainer","BlobPath":"memberids.csv"}'
+            type: 'Expression'
+          }
+        }
+        linkedServiceName: {
+          referenceName: 'AzureUserReader'
+          type: 'LinkedServiceReference'
+        }
+      }
+      {
+        name: 'PopulateDestinationDataFlow'
+        type: 'ExecuteDataFlow'
+        dependsOn: [
+          {
+            activity: 'AzureUserReader'
+            dependencyConditions: [
+              'Succeeded'
+            ]
+          }
+        ]
         policy: {
           timeout: '0.12:00:00'
           retry: 0
@@ -109,11 +170,11 @@ resource factoryName_PopulateDestinationPipeline 'Microsoft.DataFactory/factorie
   }
   dependsOn: [
     dataFactory
-    factoryName_PopulateDestinationDataFlow
+    dataFlow_PopulateDestinationDataFlow
   ]
 }
 
-resource factoryName_DestinationTable 'Microsoft.DataFactory/factories/datasets@2018-06-01' = {
+resource dataSet_DestinationTable 'Microsoft.DataFactory/factories/datasets@2018-06-01' = {
   name: '${factoryName}/DestinationTable'
   properties: {
     linkedServiceName: {
@@ -136,12 +197,12 @@ resource factoryName_DestinationTable 'Microsoft.DataFactory/factories/datasets@
     }
   }
   dependsOn: [
-    factoryName_DestinationDatabase
+    linkedService_DestinationDatabase
   ]
 }
 
-resource factoryName_memberHRDatainput 'Microsoft.DataFactory/factories/datasets@2018-06-01' = {
-  name: '${factoryName}/memberHRDatainput'
+resource dataSet_DelimitedText 'Microsoft.DataFactory/factories/datasets@2018-06-01' = {
+  name: '${factoryName}/DelimitedText'
   properties: {
     linkedServiceName: {
       referenceName: 'AzureBlobStorage'
@@ -152,7 +213,6 @@ resource factoryName_memberHRDatainput 'Microsoft.DataFactory/factories/datasets
     typeProperties: {
       location: {
         type: 'AzureBlobStorageLocation'
-        fileName: 'memberHRData.csv'
         container: 'csvcontainer'
       }
       columnDelimiter: ','
@@ -160,77 +220,14 @@ resource factoryName_memberHRDatainput 'Microsoft.DataFactory/factories/datasets
       firstRowAsHeader: true
       quoteChar: '"'
     }
-    schema: [
-      {
-        name: 'EmployeeIdentificationNumber'
-        type: 'String'
-      }
-      {
-        name: 'Position'
-        type: 'String'
-      }
-      {
-        name: 'Level'
-        type: 'String'
-      }
-      {
-        name: 'Country'
-        type: 'String'
-      }
-      {
-        name: 'Email'
-        type: 'String'
-      }
-    ]
+    schema: []
   }
   dependsOn: [
-    dataFactory
-    factoryName_AzureBlobStorage
+    linkedService_AzureBlobStorage
   ]
 }
 
-resource factoryName_memberidsinput 'Microsoft.DataFactory/factories/datasets@2018-06-01' = {
-  name: '${factoryName}/memberidsinput'
-  properties: {
-    linkedServiceName: {
-      referenceName: 'AzureBlobStorage'
-      type: 'LinkedServiceReference'
-    }
-    annotations: []
-    type: 'DelimitedText'
-    typeProperties: {
-      location: {
-        type: 'AzureBlobStorageLocation'
-        fileName: 'memberids.csv'
-        container: 'csvcontainer'
-      }
-      columnDelimiter: ','
-      escapeChar: '\\'
-      firstRowAsHeader: true
-      quoteChar: '"'
-    }
-    schema: [
-      {
-        name: 'EmployeeIdentificationNumber'
-        type: 'String'
-      }
-      {
-        name: 'ManagerIdentificationNumber'
-        type: 'String'
-      }
-      {
-        name: 'AzureObjectId'
-        type: 'String'
-      }
-    ]
-  }
-  dependsOn: [
-    dataFactory
-    factoryName_AzureBlobStorage
-  ]
-}
-
-resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factories/dataflows@2018-06-01' = {
+resource dataFlow_PopulateDestinationDataFlow 'Microsoft.DataFactory/factories/dataflows@2018-06-01' = {
   name: '${factoryName}/PopulateDestinationDataFlow'
   properties: {
     type: 'MappingDataFlow'
@@ -238,14 +235,14 @@ resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factorie
       sources: [
         {
           dataset: {
-            referenceName: 'memberidsinput'
+            referenceName: 'DelimitedText'
             type: 'DatasetReference'
           }
           name: 'memberids'
         }
         {
           dataset: {
-            referenceName: 'memberHRDatainput'
+            referenceName: 'DelimitedText'
             type: 'DatasetReference'
           }
           name: 'memberHRData'
@@ -264,62 +261,55 @@ resource factoryName_PopulateDestinationDataFlow 'Microsoft.DataFactory/factorie
         {
           name: 'join'
         }
-        {
-          name: 'derivedColumn1'
-        }
       ]
       scriptLines: [
         'source(output('
-        '          EmployeeIdentificationNumber as string,'
-        '          ManagerIdentificationNumber as string,'
-        '          AzureObjectId as string' 
+        '          PersonnelNumber as integer,'
+        '          AzureObjectId as string,'
+        '          UserPrincipalName as string'
         '     ),'
         '     allowSchemaDrift: true,'
         '     validateSchema: false,'
-        '     ignoreNoFilesFound: false) ~> memberids'
+        '     ignoreNoFilesFound: false,'
+        '     wildcardPaths:[\'memberids.csv\']) ~> memberids'
         'source(output('
-        '          EmployeeIdentificationNumber as string,'
+        '          EmployeeIdentificationNumber as integer,'
+        '          ManagerIdentificationNumber as integer,'
         '          Position as string,'
-        '          Level as string,'
-        '          Country as string,'
-        '          Email as string'
+        '          Level as integer,'
+        '          Country as string'
         '     ),'
         '     allowSchemaDrift: true,'
         '     validateSchema: false,'
-        '     ignoreNoFilesFound: false) ~> memberHRData'
-        'memberids, memberHRData join(memberids@EmployeeIdentificationNumber == memberHRData@EmployeeIdentificationNumber,'
-        '     joinType:\'left\','
+        '     ignoreNoFilesFound: false,'
+        '     wildcardPaths:[\'memberHRData.csv\']) ~> memberHRData'
+        'memberids, memberHRData join(PersonnelNumber == EmployeeIdentificationNumber,'
+        '     joinType:\'inner\','
         '     matchType:\'exact\','
         '     ignoreSpaces: false,'
         '     broadcast: \'auto\')~> join'
-        'join derive(EmployeeIdentificationNumber = toInteger(memberids@EmployeeIdentificationNumber),'
-        '          ManagerIdentificationNumber = toInteger(ManagerIdentificationNumber),'
-        '          Level = toInteger(Level)) ~> derivedColumn1'
-        'derivedColumn1 sink(allowSchemaDrift: true,'
+        'join sink(allowSchemaDrift: true,'
         '     validateSchema: false,'
         '     deletable:false,'
         '     insertable:true,'
         '     updateable:false,'
         '     upsertable:false,'
         '     format: \'table\','
-        '     skipDuplicateMapInputs: true,'
-        '     skipDuplicateMapOutputs: true,'
         '     mapColumn('
         '          AzureObjectId,'
+        '          Email = UserPrincipalName,'
         '          EmployeeId = EmployeeIdentificationNumber,'
         '          ManagerId = ManagerIdentificationNumber,'
-        '          Country,'
         '          Position,'
         '          Level,'
-        '          Email'
+        '          Country'
         '     )) ~> sink'
       ]
     }
   }
   dependsOn: [
-    factoryName_memberHRDatainput
-    factoryName_DestinationTable
-    factoryName_memberidsinput
+    dataSet_DelimitedText
+    dataSet_DestinationTable
   ]
 }
 
