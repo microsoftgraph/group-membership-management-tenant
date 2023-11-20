@@ -86,18 +86,16 @@ Below is an example of how GMM populates users in `<SolutionAbbreviation>-data-<
     Here are the columns in `memberids.csv`:
 
     - EmployeeIdentificationNumber
-    - ManagerIdentificationNumber
-    - AzureObjectId
 
     Here are the columns in `memberHRData.csv`:
 
     - EmployeeIdentificationNumber
+    - ManagerIdentificationNumber
     - Position
     - Level
     - Country
-    - Email
 
-    *Please note that `EmployeeIdentificationNumber`, `ManagerIdentificationNumber`, `AzureObjectId` are required columns within the source file to onboard a job successfully. The names of `EmployeeIdentificationNumber` and `ManagerIdentificationNumber` can be different. The names will be renamed to `EmployeeId` and `ManagerId` respectively in the destination table.*
+    *Please note that `EmployeeIdentificationNumber` and `ManagerIdentificationNumber` are required columns within the source file to onboard a job successfully. The names of `EmployeeIdentificationNumber` and `ManagerIdentificationNumber` can be different. The names will be renamed to `EmployeeId` and `ManagerId` respectively in the destination table.*
 
 5. Locate the `<SolutionAbbreviation><EnvironmentAbbreviation>adf` storage account in your `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>` resource group.
 6. Within the storage account, locate the `csvcontainer` container and upload the `memberids.csv` and `memberHRData.csv` files to it. Azure Data Factory will access these files from this location.
@@ -114,6 +112,7 @@ Below is an example of how GMM populates users in `<SolutionAbbreviation>-data-<
 - Level
 - Email
 
+Note that two additional columns are added to the destination table: `AzureObjectId` and `Email`.
 
 Now you are ready to onboard a group!
 
