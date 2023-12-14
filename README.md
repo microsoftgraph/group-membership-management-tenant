@@ -606,7 +606,44 @@ From your `PowerShell 7.x` command prompt navigate to the `Scripts/PostDeploymen
 Where:
 * `<SolutionAbbreviation>` and `<EnvironmentAbbreviation>` are as before.
 
-### SQL Server - Jobs table access
+### Grant the WebAPI access to SQL Server Database
+
+WebAPI will access the database using its system identity to authenticate with the database to prevent the use of credentials.
+
+Once the WebAPI is deployed (`<SolutionAbbreviation>-compute-<EnvironmentAbbreviation>-webapi`) and has been created we need to grant it access to the SQL Server DB.
+
+Server name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>` and `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-r` for the replica server.
+Database name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-jobs` and `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-jobs-r` for the replica database.
+
+1. Connect to your SQL Server Database using Sql Server Management Studio (SSMS) or Azure Data Studio.
+- Server name : `<server-name>.database.windows.net`
+- User name: Use your Azure account.
+- Authentication: Azure Active Directory - Universal with MFA
+- Database name: `<database-name>`
+
+2. Run these SQL command
+
+- This script needs to run only once per database.
+- Make sure you are connected to right database. Sometimes SSMS will default to the master database.
+
+```
+IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = N'<SolutionAbbreviation>-compute-<EnvironmentAbbreviation>-webapi')
+BEGIN
+ CREATE USER [<SolutionAbbreviation>-compute-<EnvironmentAbbreviation>-webapi] FROM EXTERNAL PROVIDER;
+ ALTER ROLE db_datareader ADD MEMBER [<SolutionAbbreviation>-compute-<EnvironmentAbbreviation>-webapi];
+ ALTER ROLE db_datawriter ADD MEMBER [<SolutionAbbreviation>-compute-<EnvironmentAbbreviation>-webapi];
+ ALTER ROLE db_ddladmin ADD MEMBER [<SolutionAbbreviation>-compute-<EnvironmentAbbreviation>-webapi];
+END
+```
+
+Verify it ran successfully by running:
+```
+SELECT * FROM sys.database_principals WHERE name = N'<SolutionAbbreviation>-compute-<EnvironmentAbbreviation>-webapi'
+```
+You should see one record for your webapi app.
+Repeat the steps for both databases.
+
+### Grant the Azure Functions access to SQL Server Database
 
 Azure Functions connect to SQL server via MSI (System Identity), once the database is created as part of the deployment we need to grant access to the functions to read and write to the database.
 
@@ -630,7 +667,7 @@ Repeat the steps above for each function.
 *Points to remember:*
         * *Try logging into SQL database via Azure Portal by adding the IP address*
 
-## Grant the service connection access to SQL Server Database
+## Grant the Service Connection access to SQL Server Database
 
 Your service connection needs MSI access to the SQL Server DB so it can deploy the DACPAC file.
 
