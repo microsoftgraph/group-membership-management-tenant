@@ -30,7 +30,7 @@ stages:
       condition: ${{ parameters.condition }}
       buildRelease: ${{ parameters.buildRelease }}
       stageName: ${{ parameters.stageName }}
-  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+  - template: public/deploy-pipeline-webapp.yml
     parameters:
       solutionAbbreviation: '$(SolutionAbbreviation)'
       environmentAbbreviation: 'int'
@@ -55,7 +55,7 @@ stages:
       condition: ${{ parameters.condition }}
       buildRelease: ${{ parameters.buildRelease }}
       stageName: ${{ parameters.stageName }}
-  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+  - template: public/deploy-pipeline-webapp.yml
     parameters:
       solutionAbbreviation: '$(SolutionAbbreviation)'
       environmentAbbreviation: 'ua'
@@ -80,7 +80,7 @@ stages:
       condition: ${{ parameters.condition }}
       stageName: ${{ parameters.stageName }}
       buildRelease: ${{ parameters.buildRelease }}
-  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+  - template: public/deploy-pipeline-webapp.yml
     parameters:
       solutionAbbreviation: '$(SolutionAbbreviation)'
       environmentAbbreviation: 'prodv2'
@@ -116,7 +116,7 @@ stages:
             )
         )
       stageName: ${{ parameters.stageName }}
-  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+  - template: public/deploy-pipeline-webapp.yml
     parameters:
       solutionAbbreviation: '$(SolutionAbbreviation)'
       environmentAbbreviation: '${{ parameters.environmentAbbreviation }}'

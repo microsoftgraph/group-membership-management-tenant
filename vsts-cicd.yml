@@ -31,13 +31,13 @@ variables:
 
 stages:
 
-- template: build-services.yml@group-membership-management
+- template: yaml/public/build-services.yml
   parameters:
     repoToCheckout: group-membership-management
     checkoutPath: '$(Build.BuildNumber)'
     buildRelease: ${{variables.buildRelease}}
 
-- template: yaml/build-functionapps.yml@group-membership-management
+- template: yaml/public/build-functionapps.yml
   parameters:
     dependsOn: Build_Common
     condition: succeeded('Build_Common')

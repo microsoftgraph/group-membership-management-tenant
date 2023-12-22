@@ -1,0 +1,89 @@
+parameters:
+- name: repoToCheckout
+  type: string
+- name: checkoutPath
+  type: string
+- name: buildRelease
+  type: boolean
+
+stages:
+
+- stage: Build_Common
+  jobs:
+  - job: Build_Common
+    ${{ if parameters.buildRelease }}:
+      strategy:
+          maxParallel: 2
+          matrix:
+            debug:
+              BuildConfiguration: debug
+            release:
+              BuildConfiguration: release
+    ${{ else }}:
+      variables:
+        BuildConfiguration: 'debug'
+
+    steps:
+    - ${{ if ne(parameters.repoToCheckout, '') }}:
+      - checkout: ${{ parameters.repoToCheckout }}
+        path: ${{ parameters.checkoutPath }}
+
+    - task: UseDotNet@2
+      inputs:
+        packageType: 'sdk'
+        useGlobalJson: true
+        workingDirectory: 'Service\GroupMembershipManagement'
+
+    - task: DeleteFiles@1
+      displayName: "Clean up development local settings files"
+      inputs:
+        SourceFolder: 'Service\GroupMembershipManagement'
+        Contents: '**/local.settings.json'
+
+    - task: DotNetCoreCLI@2
+      displayName: dotnet build
+      retryCountOnTaskFailure: 3
+      inputs:
+        command: build
+        workingDirectory: 'Service\GroupMembershipManagement'
+        arguments: '--configuration $(buildConfiguration)'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet test'
+      retryCountOnTaskFailure: 3
+      inputs:
+        command: test
+        workingDirectory: 'Service\GroupMembershipManagement'
+        # see https://github.com/coverlet-coverage/coverlet/blob/master/Documentation/Examples/MSBuild/MergeWith/HowTo.md for how to merge all the test output into one report
+        arguments: '--configuration $(BuildConfiguration) /p:CollectCoverage=true /p:MergeWith="$(Build.SourcesDirectory)/Coverage/coverage.json" /p:CoverletOutputFormat="cobertura" /p:CoverletOutput="$(Build.SourcesDirectory)/Coverage/" -m:1'
+      condition: and(succeeded(), eq(variables['BuildConfiguration'], 'debug'))
+
+    - task: CopyFiles@2
+      displayName: 'copy arm templates'
+      inputs:
+        SourceFolder: Infrastructure
+        TargetFolder: '$(build.artifactstagingdirectory)/Infrastructure'
+
+    - task: CopyFiles@2
+      displayName: 'copy release management scripts'
+      inputs:
+        SourceFolder: Scripts
+        TargetFolder: '$(build.artifactstagingdirectory)/Scripts'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'publish artifact'
+      inputs:
+        PathtoPublish: '$(build.artifactstagingdirectory)'
+        ArtifactName: '$(Build.BuildNumber)_$(BuildConfiguration)'
+
+- template: build-webapi.yml
+  parameters:
+    repoToCheckout: ${{ parameters.repoToCheckout }}
+    checkoutPath: ${{ parameters.checkoutPath }}
+    buildRelease: ${{ parameters.buildRelease }}
+
+- template: build-webapp.yml
+  parameters:
+    repoToCheckout: ${{ parameters.repoToCheckout }}
+    checkoutPath: ${{ parameters.checkoutPath }}
+    buildRelease: ${{ parameters.buildRelease }}
