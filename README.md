@@ -904,6 +904,7 @@ To troubleshoot any issues that might occur we can use Log Analytics and Applica
 
 1. Find Logs in the Log analytics workspace following the instructions [here](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/FindLogEntriesInLogAnalyticsForASync.md).
 2. Find failures and exceptions with Application Insights [here](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/TroubleshootWithApplicationInsights.md).
+3. In case jobs appear to be stuck in progress without any visible exceptions, it is recommended to restart GMM. This can be done by running this script [Restart-GMM.ps1](https://github.com/microsoftgraph/group-membership-management/blob/main/Scripts/Restart-GMM.ps1).
 
 # Tearing down your GMM environment.
 In the event that you want to reset the GMM environment refer to [Delete GMM environment](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/DeleteEnvironment.md) for additional guidance.
