@@ -58,6 +58,9 @@ stages:
        name: 'TeamsChannelUpdater'
        coverageThreshold: 69
     - function:
+       name: 'DestinationAttributesUpdater'
+       coverageThreshold: 67
+    - function:
        name: 'GroupMembershipObtainer'
        coverageThreshold: 89
     - function:
@@ -92,6 +95,7 @@ stages:
     - name: 'GroupMembershipObtainer'
     - name: 'SqlMembershipObtainer'
     - name: 'TeamsChannelMembershipObtainer'
+    - name: 'DestinationAttributesUpdater'
     - name: 'AzureUserReader'
     - name: 'JobScheduler'
     - name: 'MembershipAggregator'
@@ -138,6 +142,8 @@ stages:
        name: 'GraphUpdater'
     - function:
        name: 'TeamsChannelUpdater'
+    - function:
+       name: 'DestinationAttributesUpdater'
     - function:
        name: 'MembershipAggregator'
        dependsOn:
