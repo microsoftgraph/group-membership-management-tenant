@@ -613,7 +613,7 @@ WebAPI will access the database using its system identity to authenticate with t
 Once the WebAPI is deployed (`<SolutionAbbreviation>-compute-<EnvironmentAbbreviation>-webapi`) and has been created we need to grant it access to the SQL Server DB.
 
 Server name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>` and `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-r` for the replica server.
-Database name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-jobs` and `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-jobs-r` for the replica database.
+Database name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>` and `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-r` for the replica database.
 
 1. Connect to your SQL Server Database using Sql Server Management Studio (SSMS) or Azure Data Studio.
 - Server name : `<server-name>.database.windows.net`
@@ -675,7 +675,7 @@ Once the SQL server and databases are created as part of the deployment we will 
 
 SyncJobs DB
 - Server name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>`.
-- Database name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-jobs`.
+- Database name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>`.
 
 1. Connect to your SQL Server Database using Sql Server Management Studio (SSMS) or Azure Data Studio.
 - Server name : `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>.database.windows.net`
@@ -688,7 +688,7 @@ SyncJobs DB
 SyncJobs DB
 
 - This script needs to run only once.
-- Make sure you are connected to SyncJobs database: `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-jobs`.
+- Make sure you are connected to SyncJobs database: `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>`.
 
 ```
 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = N'<SolutionAbbreviation>-serviceconnection-<EnvironmentAbbreviation>')
@@ -712,7 +712,7 @@ The jobs table contains all the sync jobs that GMM will perform.
 #### Create jobs table in SQL database
 
 * Go to https://`<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi.azurewebsites.net/swagger/index.html
-* Hit the endpoint `admin/databaseMigration`. This will create the jobs table in `<solutionAbbreviation>`-data-`<environmentAbbreviation>`-jobs database
+* Hit the endpoint `admin/databaseMigration`. This will create the jobs table in `<solutionAbbreviation>`-data-`<environmentAbbreviation>` database
     * *Note: To hit the endpoint: 1- Add `ASPNETCORE_ENVIRONMENT: development` in `<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi, 2-update the value of config setting `ConnectionStrings:JobsContext` in `<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi with the value of `jobsMSIConnectionString` which you can find in your data key vault*
 * Run [this script](/Scripts/New-GmmGroupMembershipSyncJob.ps1) to add a job to sql database
 
