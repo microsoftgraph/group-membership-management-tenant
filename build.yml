@@ -1,0 +1,30 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+name: $(major).$(minor).$(Date:yyMM).$(Rev:r)
+
+trigger:
+- main
+
+pool:
+  vmImage: "windows-latest"
+
+variables:
+  major: '2'
+  minor: '0'
+
+stages:
+- stage: Build_TenantRepo
+
+  jobs:
+  - job: Build_TenantRepo
+
+    steps:
+    - checkout: self
+      persistCredentials: true
+
+    - powershell: |
+        Write-Host "Default YAML build on tenant repo, nothing to build."
+      workingDirectory: $(Build.SourcesDirectory)
+      displayName: 'Build Tenant Repo'
