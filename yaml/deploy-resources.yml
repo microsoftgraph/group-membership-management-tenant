@@ -40,6 +40,20 @@ steps:
     PathtoPublish: '${{parameters.root}}/Infrastructure'
     ArtifactName: '$(Build.BuildNumber)_$(BuildConfiguration)/Infrastructure'
 
+- task: AzurePowerShell@4
+  displayName: 'run main script'
+  inputs:
+    azureSubscription: ${{parameters.serviceConnection}}
+    ScriptType: InlineScript
+    Inline: |
+     . ${{ parameters.root }}/Scripts/main.ps1
+
+     Update-GmmMigrationIfNeeded -SubscriptionName "${{parameters.subscriptionName}}" `
+                                  -SolutionAbbreviation "${{parameters.solutionAbbreviation}}" `
+                                  -EnvironmentAbbreviation "${{parameters.environmentAbbreviation}}" `
+                                  -Verbose
+    azurePowerShellVersion: LatestVersion
+
 - task: AzurePowerShell@5
   displayName: 'Get existing data resources'
   inputs:
