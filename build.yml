@@ -24,7 +24,10 @@ stages:
     - checkout: self
       persistCredentials: true
 
-    - powershell: |
-        Write-Host "Default YAML build on tenant repo, nothing to build."
-      workingDirectory: $(Build.SourcesDirectory)
-      displayName: 'Build Tenant Repo'
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet build DemoUserSetup'
+      retryCountOnTaskFailure: 1
+      inputs:
+        command: build
+        projects: 'Service/GroupMembershipManagement/Hosts/Console/DemoUserSetup/DemoUserSetup.csproj'
+        arguments: '--configuration release'
