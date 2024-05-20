@@ -137,6 +137,8 @@ The steps in this document will setup a single environment i.e. prodv2, if you w
 
 ## Create Azure Devops Repositories
 
+### IMPORTANT: Make sure you have access to Azure DevOps Pipelines & Repos
+
 1. ### Sign in to [Azure DevOps](https://azure.microsoft.com/en-us/services/devops/)
 
 2. ### Create a private project:
@@ -176,6 +178,8 @@ The steps in this document will setup a single environment i.e. prodv2, if you w
                 git add *
                 git commit -m “updated public submodule”
                 git push
+
+    Note: Make sure that you set the default branch by going to Azure DevOps -> Repos -> Branches
 
 ## Create resource groups and the prereqs keyvault
 
@@ -307,6 +311,14 @@ Once your application is created, we need to grant the requested permissions to 
 
 See [WebApiSetup.md](https://github.com/microsoftgraph/group-membership-management/blob/main/Service/GroupMembershipManagement/Hosts/WebApi/Documentation/WebApiSetup.md) for more information.
 
+## Create the UI application and populate prereqs keyvault
+
+See [UISetup.md](https://github.com/microsoftgraph/group-membership-management/blob/main/UI/Documentation/UISetup.md) for more information.
+
+## Set sender address for email notification 
+
+See [SetSenderAddressForEmailNotification.md](https://github.com/microsoftgraph/group-membership-management/blob/main/Service/GroupMembershipManagement/Repositories.Mail/Documentation/SetSenderAddressForEmailNotification.md) for more information.
+
 ## Adding a new GMM environment
 
 See [GMM Environments](#gmm-environments) and [ARM templates and parameter files overview](#ARM-templates-and-parameter-files-overview).
@@ -429,7 +441,7 @@ See [GMM Environments](#gmm-environments) and [ARM templates and parameter files
                                 -RepoPath "<RepoPath>"
         * Use `"env"` for `<SourceEnvironmentAbbreviation>` and the absolute path to your private repository for `<RepoPath>`.
     * This command will go into each of the `parameters` folders and copy and rename the `parameters.env.json` file to `parameters.<EnvironmentAbbreviation>.json`. These new parameter files will be used to by the ARM templates to deploy the resources of the new environment.
-    * You may create an AAD Group and provide the values for sqlAdministratorsGroupId and sqlAdministratorsGroupName in [your param file](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Infrastructure/data/parameters).
+    * You may create an AAD Group and provide the values for sqlAdministratorsGroupId and sqlAdministratorsGroupName in [data/parameters](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Infrastructure/data/parameters) and [data/private/parameters](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Infrastructure/data/private/parameters/parameters.env.json) files.
     * You also want to provide values for `branch` and `repositoryUrl` in [your UI param file](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Service/GroupMembershipManagement/Hosts/UI/Infrastructure/compute/parameters). You can provide "" for `customDomainName` if you have not set up a custom domain.
      * You also want to replace values for `<tenant-id>`, `<subscription-id>`, `<data-resource-group-name>` and `<data-key-vault-name>` in SqlMembershipObtainer/Infrastructure/compute/param file.
 
@@ -541,6 +553,8 @@ In Azure DevOps, we need to create a pipeline that will create your resources an
 
         * `location` - This is the location where the Azure resources are going to be created. See [Resource Locations](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/resource-location?tabs=azure-powershell).
 
+        * `subscriptionId_prod` - This is the subscription Id of your production environment.
+
         * `subscriptionId_nonprod` - This is the subscription Id of your non-production environment.
 
         * `tenantId` - This is the Azure Active Directory tenant Id, where GMM Azure resources were created.
@@ -571,6 +585,8 @@ In Azure DevOps, we need to create a pipeline that will create your resources an
             2. For users locate the `Users` blade and for groups locate the `Groups` blade on the left menu.
             3. Search for the name of the user or group and select it from the results list.
             4. Locate the `Object ID` field. This is the value that you will need to copy.
+        
+        * `keyVaultReaders_prod` - This is a list of service principals that will have access to the keyvaults in production environment. 
 
     12. Follow [Update Build/Release Pipeline variables](https://github.com/microsoftgraph/group-membership-management/blob/main/UI/Documentation/UISetup.md) to create additional variables and deploy WebAPI & UI.
     13. Once all variables have been created click on the "Save" button.
