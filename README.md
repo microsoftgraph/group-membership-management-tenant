@@ -511,7 +511,16 @@ The following PowerShell scripts create a Service Principal and set up a Service
 
     Go to your `<SolutionAbbreviation>`-prereqs-`<EnvironmentAbbreviation>` keyvault > Click on 'Access policies' > Click on Create > Select Get, List, and Set secrets permissions and then add your `<SolutionAbbreviation>`-serviceconnection-`<EnvironmentAbbreviation>` as the principal.
 
-5. For testing purposes, "`<SolutionAbbreviation>`-serviceconnection-`<EnvironmentAbbreviation>`" must be assigned the 'Owner' role in your data resource group to successfully run the pipeline. Please note that this is for testing only and is not recommended for production use. In a production environment or when operating as a company, it is advised to define a custom role that aligns with the principle of least privilege for enhanced security. This custom role should only provide the minimum permissions necessary for the pipeline to function correctly, thereby minimizing potential security risks.
+5. In addition to the Contributor role, the service connection needs addional actions no included in the Contributor role. To grant these permissions, follow the steps:
+   From your `PowerShell 7.x` command prompt navigate to the `Scripts` folder of your `Public` repo, run these commands:
+
+        1. . ./Set-CustomRole.ps1
+        2. Set-CustomRole -SolutionAbbreviation "<SolutionAbbreviation>"  `
+                          -EnvironmentAbbreviation "<EnvironmentAbbreviation>" `
+                          -Verbose
+
+    The script will create a custom role named "GMM Custom Role" and assign it to the service principal. This role has the following permissions:
+    - Microsoft.Authorization/locks/*
 
 ## Setup the Notifier
 
