@@ -110,7 +110,6 @@ stages:
     environmentAbbreviation: 'env'
     tenantId: $(tenantId)
     subscriptionId: $(subscriptionId_nonprod)
-    keyVaultReaders: $(keyVaultReaders_nonprod)
     location: $(location)
     serviceConnection: '$(SolutionAbbreviation)-serviceconnection-env'
     buildRelease: ${{variables.buildRelease}}
@@ -128,7 +127,6 @@ stages:
     tenantId: $(tenantId)
     subscriptionName: $(subscriptionName_nonprod)
     subscriptionId: $(subscriptionId_nonprod)
-    keyVaultReaders: $(keyVaultReaders_nonprod)
     location: $(location)
     serviceConnection: '$(SolutionAbbreviation)-serviceconnection-env'
     dependsOn:

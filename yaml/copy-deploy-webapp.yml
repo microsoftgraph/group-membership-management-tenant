@@ -9,8 +9,6 @@ parameters:
   type: string
 - name: subscriptionId
   type: string
-- name: keyVaultReaders
-  type: object
 - name: location
   type: string
 - name: serviceConnection
@@ -37,7 +35,6 @@ stages:
       tenantId: $(tenantId)
       location: $(location)
       subscriptionId: $(subscriptionId_nonprod)
-      keyVaultReaders: $(keyVaultReaders_nonprod)
       serviceConnection: '$(SolutionAbbreviation)-serviceconnection-int'
       dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
       stageName: 'NonProd_webapp_int'
@@ -62,7 +59,6 @@ stages:
       tenantId: $(tenantId)
       location: $(location)
       subscriptionId: $(subscriptionId_nonprod)
-      keyVaultReaders: $(keyVaultReaders_nonprod)
       serviceConnection: '$(SolutionAbbreviation)-serviceconnection-ua'
       dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
       stageName: 'NonProd_webapp_ua'
@@ -87,7 +83,6 @@ stages:
       tenantId: $(tenantId)
       location: $(location)
       subscriptionId: $(subscriptionId_prod)
-      keyVaultReaders: $(keyVaultReaders_prod)
       serviceConnection: '$(SolutionAbbreviation)-serviceconnection-prodv2'
       dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
       stageName: 'Prod_webapp_production'
@@ -123,7 +118,6 @@ stages:
       tenantId: $(tenantId)
       location: $(location)
       subscriptionId: $(subscriptionId_nonprod)
-      keyVaultReaders: $(keyVaultReaders_nonprod)
       serviceConnection: '$(SolutionAbbreviation)-serviceconnection-${{ parameters.environmentAbbreviation }}'
       dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
       stageName: 'NonProd_webapp_${{ parameters.environmentAbbreviation }}'
