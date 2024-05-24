@@ -118,7 +118,7 @@ stages:
     condition: |
       and(
         succeeded('Build_WebApp'),
-        eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+        in(variables['Build.SourceBranch'], 'refs/heads/develop', 'refs/heads/main')
       )
 
 - template: yaml/deploy-pipeline.yml
@@ -178,7 +178,7 @@ stages:
       and(
         succeeded('Build_Common'),
         succeeded('Build_CopyParameters'),
-        eq(variables['Build.SourceBranch'], 'refs/heads/develop'),
+        in(variables['Build.SourceBranch'], 'refs/heads/develop', 'refs/heads/main'),
         in(variables['Build.Reason'], 'IndividualCI', 'Manual')
       )
 

@@ -110,7 +110,7 @@ stages:
             or(
               and(
                 in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/develop'),
-                eq(variables['Build.Reason'], 'Manual')
+                in(variables['Build.Reason'], 'IndividualCI', 'Manual')
               ),
               startsWith(variables['Build.SourceBranch'], 'refs/heads/users/${{ parameters.alias }}/')
             )
@@ -133,7 +133,7 @@ stages:
             or(
               and(
                 in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/develop'),
-                eq(variables['Build.Reason'], 'Manual')
+                in(variables['Build.Reason'], 'IndividualCI', 'Manual')
               ),
               startsWith(variables['Build.SourceBranch'], 'refs/heads/users/${{ parameters.alias }}/')
             )
