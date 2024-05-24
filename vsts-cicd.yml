@@ -24,7 +24,7 @@ variables:
   "major": '2'
   "minor": '0'
   "BuildConfiguration": 'debug'
-  "SolutionAbbreviation": 'gmm'
+  "SolutionAbbreviation": $(SolutionAbbreviation)
   disable.coverage.autogenerate: 'true'
   "buildRelease": ${{  in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main') }}
   tools.ref: $[ resources.repositories['group-membership-management'].ref ]

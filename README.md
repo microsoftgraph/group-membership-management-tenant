@@ -336,7 +336,6 @@ See [GMM Environments](#gmm-environments) and [ARM templates and parameter files
         tenantId: $(tenantId)
         subscriptionName: $(subscriptionName_nonprod)
         subscriptionId: $(subscriptionId_nonprod)
-        keyVaultReaders: $(keyVaultReaders_nonprod)
         location: $(location)
         serviceConnection: '$(SolutionAbbreviation)-serviceconnection-<env>'
         dependsOn:
@@ -395,7 +394,6 @@ See [GMM Environments](#gmm-environments) and [ARM templates and parameter files
         environmentAbbreviation: '<env>'
         tenantId: $(tenantId)
         subscriptionId: $(subscriptionId_prod)
-        keyVaultReaders: $(keyVaultReaders_prod)
         location: $(location)
         serviceConnection: '$(SolutionAbbreviation)-serviceconnection-<env>'
         buildRelease: ${{variables.buildRelease}}
@@ -568,34 +566,7 @@ In Azure DevOps, we need to create a pipeline that will create your resources an
 
         * `tenantId` - This is the Azure Active Directory tenant Id, where GMM Azure resources were created.
 
-        * `keyVaultReaders_nonprod` - This is a list of service principals that will have access to the keyvaults in non-production environment. Within this list, you are required to have your own Azure user id and the id of your environment's service connection; any other value is optional. This variable's value is a JSON string that represents an array. See JSON format below.
-
-             <b>Note:</b> Use the following JSON format for `keyVaultReaders_nonprod`:
-
-                [
-                    {
-                    "objectId": "<user-object-id>",
-                    "secrets": [ "get", "set", "list" ]
-                    },
-                    {
-                    "objectId": "<service-connection-object-id>",
-                    "secrets": [ "get", "set", "list" ]
-                    }
-                ]
-
-
-            * `objectId`: the group or user object id.
-            * `secrets`: the list of permissions that will be set.
-
-            You can add or remove objects from the json array as needed.
-
-            To find the  group or user id in Azure follow these steps:
-            1. In the `Azure Portal` navigate to your `Azure Active Directory`. If you don't see it on your screen you can use the top search bar to locate it.
-            2. For users locate the `Users` blade and for groups locate the `Groups` blade on the left menu.
-            3. Search for the name of the user or group and select it from the results list.
-            4. Locate the `Object ID` field. This is the value that you will need to copy.
-        
-        * `keyVaultReaders_prod` - This is a list of service principals that will have access to the keyvaults in production environment. 
+        * `SolutionAbbreviation` - This is the abbreviation of your solution.
 
     12. Follow [Update Build/Release Pipeline variables](https://github.com/microsoftgraph/group-membership-management/blob/main/UI/Documentation/UISetup.md) to create additional variables and deploy WebAPI & UI.
     13. Once all variables have been created click on the "Save" button.
@@ -769,7 +740,6 @@ To create a production environment:
             environmentAbbreviation: '<ProdEnvironmentAbbreviation>'
             tenantId: $(tenantId)
             subscriptionId: $(subscriptionId_prod)
-            keyVaultReaders: $(keyVaultReaders_prod)
             location: $(location)
             serviceConnection: '$(SolutionAbbreviation)-serviceconnection-<ProdEnvironmentAbbreviation>'
             dependsOn:
@@ -817,7 +787,8 @@ To create a production environment:
 3. Add the following variables to your pipeline as you did in step 11 of [Creating a Pipeline](#create-an-azure-devops-pipeline):
 
     * `subscriptionId_prod` - This is the subscription Id of your production environment.
-    * `keyVaultReaders_prod` - This is a list of service principals that will have access to the keyvaults in non-production environments. Within this list, you are required to have your own Azure user id and the id of your environment's service connection; any other value is optional. This variable's value is a JSON string that represents an array. Use the same format used for `keyVaultReaders_nonprod` in step 11 of [Creating a Pipeline](#create-an-azure-devops-pipeline).
+    * `SolutionAbbreviation` - This is the abbreviation of your solution.
+
 
 
 # Using GMM
