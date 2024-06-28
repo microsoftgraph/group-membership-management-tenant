@@ -162,6 +162,78 @@ resource Pipeline_PopulateDestinationPipeline 'Microsoft.DataFactory/factories/p
           traceLevel: 'Fine'
         }
       }
+      {
+        name: 'Add Height Column'
+        type: 'Script'
+        dependsOn: [
+          {
+            activity: 'PopulateDestinationDataFlow'
+            dependencyConditions: [
+              'Succeeded'
+            ]
+          }
+        ]
+        policy: {
+          timeout: '7.00:00:00'
+          retry: 0
+          retryIntervalInSeconds: 30
+          secureOutput: false
+          secureInput: false
+        }
+        userProperties: []
+        linkedServiceName: {
+          referenceName: 'DestinationDatabase'
+          type: 'LinkedServiceReference'
+        }
+        typeProperties: {
+          scripts: [
+            {
+              type: 'Query'
+              text: {
+                value: '@concat(\'ALTER TABLE tbl\',replace(pipeline().RunId,\'-\',\'\'),\' ADD Height int\')'
+                type: 'Expression'
+              }
+            }
+          ]
+          scriptBlockExecutionTimeout: '02:00:00'
+        }
+      }
+      {
+        name: 'Calculate Height'
+        type: 'Script'
+        dependsOn: [
+          {
+            activity: 'Add Height Column'
+            dependencyConditions: [
+              'Succeeded'
+            ]
+          }
+        ]
+        policy: {
+          timeout: '7.00:00:00'
+          retry: 0
+          retryIntervalInSeconds: 30
+          secureOutput: false
+          secureInput: false
+        }
+        userProperties: []
+        linkedServiceName: {
+          referenceName: 'DestinationDatabase'
+          type: 'LinkedServiceReference'
+        }
+        typeProperties: {
+          scripts: [
+            {
+              type: 'Query'
+              text: {
+                value: '@concat(\'\n\nWITH DirectReports(Email, RootId, ManagerId, EmployeeId, RelativeEmployeeLevel) AS\n(\n\tSELECT Email, EmployeeId RootId, ManagerId, EmployeeId, 0 AS RelativeEmployeeLevel\n\tFROM tbl\',replace(pipeline().RunId,\'-\',\'\'),\'\t\n\tUNION ALL\n\tSELECT d.Email, d.RootId, e.ManagerId, e.EmployeeId, RelativeEmployeeLevel + 1\n\tFROM tbl\',replace(pipeline().RunId,\'-\',\'\'),\' AS e\n\t\tINNER JOIN DirectReports AS d\n\t\tON e.ManagerId = d.EmployeeId\t \n), q2 as\n(\n    SELECT Email,\n           RootId,\n           ManagerId,\n           EmployeeId,\n           RelativeEmployeeLevel,\n           max(RelativeEmployeeLevel) over (partition by RootId) - RelativeEmployeeLevel LevelsBelow\n    FROM DirectReports\n), ForUpd as\n(SELECT rootId, EmployeeId, LevelsBelow FROM q2 where rootid = EmployeeId)\n\nUPDATE tbl\',replace(pipeline().RunId,\'-\',\'\'),\' SET Height = B.LevelsBelow\nFROM tbl\',replace(pipeline().RunId,\'-\',\'\'),\' A\nJOIN ForUpd B ON A.EmployeeId = B.EmployeeId\n\n\')'
+                type: 'Expression'
+              }
+            }
+          ]
+          scriptBlockExecutionTimeout: '02:00:00'
+        }
+      }
     ]
     policy: {
       elapsedTimeMetric: {}

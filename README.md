@@ -137,6 +137,8 @@ The steps in this document will setup a single environment i.e. prodv2, if you w
 
 ## Create Azure Devops Repositories
 
+### IMPORTANT: Make sure you have access to Azure DevOps Pipelines & Repos
+
 1. ### Sign in to [Azure DevOps](https://azure.microsoft.com/en-us/services/devops/)
 
 2. ### Create a private project:
@@ -176,6 +178,8 @@ The steps in this document will setup a single environment i.e. prodv2, if you w
                 git add *
                 git commit -m “updated public submodule”
                 git push
+
+    Note: Make sure that you set the default branch by going to Azure DevOps -> Repos -> Branches
 
 ## Create resource groups and the prereqs keyvault
 
@@ -307,6 +311,14 @@ Once your application is created, we need to grant the requested permissions to 
 
 See [WebApiSetup.md](https://github.com/microsoftgraph/group-membership-management/blob/main/Service/GroupMembershipManagement/Hosts/WebApi/Documentation/WebApiSetup.md) for more information.
 
+## Create the UI application and populate prereqs keyvault
+
+See [UISetup.md](https://github.com/microsoftgraph/group-membership-management/blob/main/UI/Documentation/UISetup.md) for more information.
+
+## Set sender address for email notification 
+
+See [SetSenderAddressForEmailNotification.md](https://github.com/microsoftgraph/group-membership-management/blob/main/Service/GroupMembershipManagement/Repositories.Mail/Documentation/SetSenderAddressForEmailNotification.md) for more information.
+
 ## Adding a new GMM environment
 
 See [GMM Environments](#gmm-environments) and [ARM templates and parameter files overview](#ARM-templates-and-parameter-files-overview).
@@ -324,7 +336,6 @@ See [GMM Environments](#gmm-environments) and [ARM templates and parameter files
         tenantId: $(tenantId)
         subscriptionName: $(subscriptionName_nonprod)
         subscriptionId: $(subscriptionId_nonprod)
-        keyVaultReaders: $(keyVaultReaders_nonprod)
         location: $(location)
         serviceConnection: '$(SolutionAbbreviation)-serviceconnection-<env>'
         dependsOn:
@@ -383,7 +394,6 @@ See [GMM Environments](#gmm-environments) and [ARM templates and parameter files
         environmentAbbreviation: '<env>'
         tenantId: $(tenantId)
         subscriptionId: $(subscriptionId_prod)
-        keyVaultReaders: $(keyVaultReaders_prod)
         location: $(location)
         serviceConnection: '$(SolutionAbbreviation)-serviceconnection-<env>'
         buildRelease: ${{variables.buildRelease}}
@@ -429,7 +439,7 @@ See [GMM Environments](#gmm-environments) and [ARM templates and parameter files
                                 -RepoPath "<RepoPath>"
         * Use `"env"` for `<SourceEnvironmentAbbreviation>` and the absolute path to your private repository for `<RepoPath>`.
     * This command will go into each of the `parameters` folders and copy and rename the `parameters.env.json` file to `parameters.<EnvironmentAbbreviation>.json`. These new parameter files will be used to by the ARM templates to deploy the resources of the new environment.
-    * You may create an AAD Group and provide the values for sqlAdministratorsGroupId and sqlAdministratorsGroupName in [your param file](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Infrastructure/data/parameters).
+    * You may create an AAD Group and provide the values for sqlAdministratorsGroupId and sqlAdministratorsGroupName in [data/parameters](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Infrastructure/data/parameters) and [data/private/parameters](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Infrastructure/data/private/parameters/parameters.env.json) files.
     * You also want to provide values for `branch` and `repositoryUrl` in [your UI param file](https://github.com/microsoftgraph/group-membership-management-tenant/blob/main/Service/GroupMembershipManagement/Hosts/UI/Infrastructure/compute/parameters). You can provide "" for `customDomainName` if you have not set up a custom domain.
      * You also want to replace values for `<tenant-id>`, `<subscription-id>`, `<data-resource-group-name>` and `<data-key-vault-name>` in SqlMembershipObtainer/Infrastructure/compute/param file.
 
@@ -499,7 +509,16 @@ The following PowerShell scripts create a Service Principal and set up a Service
 
     Go to your `<SolutionAbbreviation>`-prereqs-`<EnvironmentAbbreviation>` keyvault > Click on 'Access policies' > Click on Create > Select Get, List, and Set secrets permissions and then add your `<SolutionAbbreviation>`-serviceconnection-`<EnvironmentAbbreviation>` as the principal.
 
-5. For testing purposes, "`<SolutionAbbreviation>`-serviceconnection-`<EnvironmentAbbreviation>`" must be assigned the 'Owner' role in your data resource group to successfully run the pipeline. Please note that this is for testing only and is not recommended for production use. In a production environment or when operating as a company, it is advised to define a custom role that aligns with the principle of least privilege for enhanced security. This custom role should only provide the minimum permissions necessary for the pipeline to function correctly, thereby minimizing potential security risks.
+5. In addition to the Contributor role, the service connection needs addional actions no included in the Contributor role. To grant these permissions, follow the steps:
+   From your `PowerShell 7.x` command prompt navigate to the `Scripts` folder of your `Public` repo, run these commands:
+
+        1. . ./Set-CustomRole.ps1
+        2. Set-CustomRole -SolutionAbbreviation "<SolutionAbbreviation>"  `
+                          -EnvironmentAbbreviation "<EnvironmentAbbreviation>" `
+                          -Verbose
+
+    The script will create a custom role named "GMM Custom Role" and assign it to the service principal. This role has the following permissions:
+    - Microsoft.Authorization/locks/*
 
 ## Setup the Notifier
 
@@ -541,36 +560,13 @@ In Azure DevOps, we need to create a pipeline that will create your resources an
 
         * `location` - This is the location where the Azure resources are going to be created. See [Resource Locations](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/resource-location?tabs=azure-powershell).
 
+        * `subscriptionId_prod` - This is the subscription Id of your production environment.
+
         * `subscriptionId_nonprod` - This is the subscription Id of your non-production environment.
 
         * `tenantId` - This is the Azure Active Directory tenant Id, where GMM Azure resources were created.
 
-        * `keyVaultReaders_nonprod` - This is a list of service principals that will have access to the keyvaults in non-production environment. Within this list, you are required to have your own Azure user id and the id of your environment's service connection; any other value is optional. This variable's value is a JSON string that represents an array. See JSON format below.
-
-             <b>Note:</b> Use the following JSON format for `keyVaultReaders_nonprod`:
-
-                [
-                    {
-                    "objectId": "<user-object-id>",
-                    "secrets": [ "get", "set", "list" ]
-                    },
-                    {
-                    "objectId": "<service-connection-object-id>",
-                    "secrets": [ "get", "set", "list" ]
-                    }
-                ]
-
-
-            * `objectId`: the group or user object id.
-            * `secrets`: the list of permissions that will be set.
-
-            You can add or remove objects from the json array as needed.
-
-            To find the  group or user id in Azure follow these steps:
-            1. In the `Azure Portal` navigate to your `Azure Active Directory`. If you don't see it on your screen you can use the top search bar to locate it.
-            2. For users locate the `Users` blade and for groups locate the `Groups` blade on the left menu.
-            3. Search for the name of the user or group and select it from the results list.
-            4. Locate the `Object ID` field. This is the value that you will need to copy.
+        * `SolutionAbbreviation` - This is the abbreviation of your solution.
 
     12. Follow [Update Build/Release Pipeline variables](https://github.com/microsoftgraph/group-membership-management/blob/main/UI/Documentation/UISetup.md) to create additional variables and deploy WebAPI & UI.
     13. Once all variables have been created click on the "Save" button.
@@ -613,7 +609,7 @@ WebAPI will access the database using its system identity to authenticate with t
 Once the WebAPI is deployed (`<SolutionAbbreviation>-compute-<EnvironmentAbbreviation>-webapi`) and has been created we need to grant it access to the SQL Server DB.
 
 Server name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>` and `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-r` for the replica server.
-Database name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-jobs` and `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-jobs-r` for the replica database.
+Database name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>` and `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-r` for the replica database.
 
 1. Connect to your SQL Server Database using Sql Server Management Studio (SSMS) or Azure Data Studio.
 - Server name : `<server-name>.database.windows.net`
@@ -648,7 +644,7 @@ Repeat the steps for both databases.
 Azure Functions connect to SQL server via MSI (System Identity), once the database is created as part of the deployment we need to grant access to the functions to read and write to the database.
 
 For these functions:
-JobTrigger, GroupMembershipObtainer, SqlMembershipObtainer, AzureMaintenance, PlaceMembershipObtainer*, AzureUserReader, GraphUpdater, JobScheduler, MembershipAggregator, NonProdService, Notifier, GroupOwnershipObtainer, TeamsChannelMembershipObtainer, TeamsChannelUpdater
+JobTrigger, GroupMembershipObtainer, SqlMembershipObtainer, AzureMaintenance, PlaceMembershipObtainer*, AzureUserReader, GraphUpdater, JobScheduler, MembershipAggregator, NonProdService, Notifier, GroupOwnershipObtainer, TeamsChannelMembershipObtainer, TeamsChannelUpdater, DestinationAttributesUpdater
 
 Run this commands, in your SQL Server database where the jobs table was created:
 
@@ -675,7 +671,7 @@ Once the SQL server and databases are created as part of the deployment we will 
 
 SyncJobs DB
 - Server name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>`.
-- Database name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-jobs`.
+- Database name follows this naming convention `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>`.
 
 1. Connect to your SQL Server Database using Sql Server Management Studio (SSMS) or Azure Data Studio.
 - Server name : `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>.database.windows.net`
@@ -688,7 +684,7 @@ SyncJobs DB
 SyncJobs DB
 
 - This script needs to run only once.
-- Make sure you are connected to SyncJobs database: `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>-jobs`.
+- Make sure you are connected to SyncJobs database: `<SolutionAbbreviation>-data-<EnvironmentAbbreviation>`.
 
 ```
 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = N'<SolutionAbbreviation>-serviceconnection-<EnvironmentAbbreviation>')
@@ -712,7 +708,7 @@ The jobs table contains all the sync jobs that GMM will perform.
 #### Create jobs table in SQL database
 
 * Go to https://`<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi.azurewebsites.net/swagger/index.html
-* Hit the endpoint `admin/databaseMigration`. This will create the jobs table in `<solutionAbbreviation>`-data-`<environmentAbbreviation>`-jobs database
+* Hit the endpoint `admin/databaseMigration`. This will create the jobs table in `<solutionAbbreviation>`-data-`<environmentAbbreviation>` database
     * *Note: To hit the endpoint: 1- Add `ASPNETCORE_ENVIRONMENT: development` in `<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi, 2-update the value of config setting `ConnectionStrings:JobsContext` in `<solutionAbbreviation>`-compute-`<environmentAbbreviation>`-webapi with the value of `jobsMSIConnectionString` which you can find in your data key vault*
 * Run [this script](/Scripts/New-GmmGroupMembershipSyncJob.ps1) to add a job to sql database
 
@@ -744,7 +740,6 @@ To create a production environment:
             environmentAbbreviation: '<ProdEnvironmentAbbreviation>'
             tenantId: $(tenantId)
             subscriptionId: $(subscriptionId_prod)
-            keyVaultReaders: $(keyVaultReaders_prod)
             location: $(location)
             serviceConnection: '$(SolutionAbbreviation)-serviceconnection-<ProdEnvironmentAbbreviation>'
             dependsOn:
@@ -792,7 +787,8 @@ To create a production environment:
 3. Add the following variables to your pipeline as you did in step 11 of [Creating a Pipeline](#create-an-azure-devops-pipeline):
 
     * `subscriptionId_prod` - This is the subscription Id of your production environment.
-    * `keyVaultReaders_prod` - This is a list of service principals that will have access to the keyvaults in non-production environments. Within this list, you are required to have your own Azure user id and the id of your environment's service connection; any other value is optional. This variable's value is a JSON string that represents an array. Use the same format used for `keyVaultReaders_nonprod` in step 11 of [Creating a Pipeline](#create-an-azure-devops-pipeline).
+    * `SolutionAbbreviation` - This is the abbreviation of your solution.
+
 
 
 # Using GMM
@@ -904,6 +900,7 @@ To troubleshoot any issues that might occur we can use Log Analytics and Applica
 
 1. Find Logs in the Log analytics workspace following the instructions [here](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/FindLogEntriesInLogAnalyticsForASync.md).
 2. Find failures and exceptions with Application Insights [here](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/TroubleshootWithApplicationInsights.md).
+3. In case jobs appear to be stuck in progress without any visible exceptions, it is recommended to restart GMM. This can be done by running this script [Restart-GMM.ps1](https://github.com/microsoftgraph/group-membership-management/blob/main/Scripts/Restart-GMM.ps1).
 
 # Tearing down your GMM environment.
 In the event that you want to reset the GMM environment refer to [Delete GMM environment](https://github.com/microsoftgraph/group-membership-management/blob/main/Documentation/DeleteEnvironment.md) for additional guidance.

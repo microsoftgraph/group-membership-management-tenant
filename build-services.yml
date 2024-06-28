@@ -5,7 +5,7 @@ stages:
   jobs:
     - job: Build_WebApp
       steps:
-      - template: yaml/build-webapp.yml@group-membership-management
+      - template: yaml/public/build-webapp.yml
 
       - task: CopyFiles@2
         displayName: 'Copy .npmrc file to public/UI/web-app'

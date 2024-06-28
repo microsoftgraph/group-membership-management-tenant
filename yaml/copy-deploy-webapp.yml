@@ -9,8 +9,6 @@ parameters:
   type: string
 - name: subscriptionId
   type: string
-- name: keyVaultReaders
-  type: object
 - name: location
   type: string
 - name: serviceConnection
@@ -30,14 +28,13 @@ stages:
       condition: ${{ parameters.condition }}
       buildRelease: ${{ parameters.buildRelease }}
       stageName: ${{ parameters.stageName }}
-  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+  - template: public/deploy-pipeline-webapp.yml
     parameters:
       solutionAbbreviation: '$(SolutionAbbreviation)'
       environmentAbbreviation: 'int'
       tenantId: $(tenantId)
       location: $(location)
       subscriptionId: $(subscriptionId_nonprod)
-      keyVaultReaders: $(keyVaultReaders_nonprod)
       serviceConnection: '$(SolutionAbbreviation)-serviceconnection-int'
       dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
       stageName: 'NonProd_webapp_int'
@@ -55,14 +52,13 @@ stages:
       condition: ${{ parameters.condition }}
       buildRelease: ${{ parameters.buildRelease }}
       stageName: ${{ parameters.stageName }}
-  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+  - template: public/deploy-pipeline-webapp.yml
     parameters:
       solutionAbbreviation: '$(SolutionAbbreviation)'
       environmentAbbreviation: 'ua'
       tenantId: $(tenantId)
       location: $(location)
       subscriptionId: $(subscriptionId_nonprod)
-      keyVaultReaders: $(keyVaultReaders_nonprod)
       serviceConnection: '$(SolutionAbbreviation)-serviceconnection-ua'
       dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
       stageName: 'NonProd_webapp_ua'
@@ -80,14 +76,13 @@ stages:
       condition: ${{ parameters.condition }}
       stageName: ${{ parameters.stageName }}
       buildRelease: ${{ parameters.buildRelease }}
-  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+  - template: public/deploy-pipeline-webapp.yml
     parameters:
       solutionAbbreviation: '$(SolutionAbbreviation)'
       environmentAbbreviation: 'prodv2'
       tenantId: $(tenantId)
       location: $(location)
       subscriptionId: $(subscriptionId_prod)
-      keyVaultReaders: $(keyVaultReaders_prod)
       serviceConnection: '$(SolutionAbbreviation)-serviceconnection-prodv2'
       dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
       stageName: 'Prod_webapp_production'
@@ -110,20 +105,19 @@ stages:
             or(
               and(
                 in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/develop'),
-                eq(variables['Build.Reason'], 'Manual')
+                in(variables['Build.Reason'], 'IndividualCI', 'Manual')
               ),
               startsWith(variables['Build.SourceBranch'], 'refs/heads/users/${{ parameters.alias }}/')
             )
         )
       stageName: ${{ parameters.stageName }}
-  - template: yaml/deploy-pipeline-webapp.yml@group-membership-management
+  - template: public/deploy-pipeline-webapp.yml
     parameters:
       solutionAbbreviation: '$(SolutionAbbreviation)'
       environmentAbbreviation: '${{ parameters.environmentAbbreviation }}'
       tenantId: $(tenantId)
       location: $(location)
       subscriptionId: $(subscriptionId_nonprod)
-      keyVaultReaders: $(keyVaultReaders_nonprod)
       serviceConnection: '$(SolutionAbbreviation)-serviceconnection-${{ parameters.environmentAbbreviation }}'
       dependsOn: '${{ parameters.stageName }}_CopyParameters_WebApp'
       stageName: 'NonProd_webapp_${{ parameters.environmentAbbreviation }}'
@@ -133,7 +127,7 @@ stages:
             or(
               and(
                 in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/develop'),
-                eq(variables['Build.Reason'], 'Manual')
+                in(variables['Build.Reason'], 'IndividualCI', 'Manual')
               ),
               startsWith(variables['Build.SourceBranch'], 'refs/heads/users/${{ parameters.alias }}/')
             )

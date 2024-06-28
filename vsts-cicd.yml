@@ -24,20 +24,19 @@ variables:
   "major": '2'
   "minor": '0'
   "BuildConfiguration": 'debug'
-  "SolutionAbbreviation": 'gmm'
   disable.coverage.autogenerate: 'true'
   "buildRelease": ${{  in(variables['Build.SourceBranch'], 'refs/heads/master', 'refs/heads/main') }}
   tools.ref: $[ resources.repositories['group-membership-management'].ref ]
 
 stages:
 
-- template: build-services.yml@group-membership-management
+- template: yaml/public/build-services.yml
   parameters:
     repoToCheckout: group-membership-management
     checkoutPath: '$(Build.BuildNumber)'
     buildRelease: ${{variables.buildRelease}}
 
-- template: yaml/build-functionapps.yml@group-membership-management
+- template: yaml/public/build-functionapps.yml
   parameters:
     dependsOn: Build_Common
     condition: succeeded('Build_Common')
@@ -57,6 +56,9 @@ stages:
     - function:
        name: 'TeamsChannelUpdater'
        coverageThreshold: 69
+    - function:
+       name: 'DestinationAttributesUpdater'
+       coverageThreshold: 67
     - function:
        name: 'GroupMembershipObtainer'
        coverageThreshold: 89
@@ -92,6 +94,7 @@ stages:
     - name: 'GroupMembershipObtainer'
     - name: 'SqlMembershipObtainer'
     - name: 'TeamsChannelMembershipObtainer'
+    - name: 'DestinationAttributesUpdater'
     - name: 'AzureUserReader'
     - name: 'JobScheduler'
     - name: 'MembershipAggregator'
@@ -106,7 +109,6 @@ stages:
     environmentAbbreviation: 'env'
     tenantId: $(tenantId)
     subscriptionId: $(subscriptionId_nonprod)
-    keyVaultReaders: $(keyVaultReaders_nonprod)
     location: $(location)
     serviceConnection: '$(SolutionAbbreviation)-serviceconnection-env'
     buildRelease: ${{variables.buildRelease}}
@@ -114,7 +116,7 @@ stages:
     condition: |
       and(
         succeeded('Build_WebApp'),
-        eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+        in(variables['Build.SourceBranch'], 'refs/heads/develop', 'refs/heads/main')
       )
 
 - template: yaml/deploy-pipeline.yml
@@ -124,7 +126,6 @@ stages:
     tenantId: $(tenantId)
     subscriptionName: $(subscriptionName_nonprod)
     subscriptionId: $(subscriptionId_nonprod)
-    keyVaultReaders: $(keyVaultReaders_nonprod)
     location: $(location)
     serviceConnection: '$(SolutionAbbreviation)-serviceconnection-env'
     dependsOn:
@@ -138,6 +139,8 @@ stages:
        name: 'GraphUpdater'
     - function:
        name: 'TeamsChannelUpdater'
+    - function:
+       name: 'DestinationAttributesUpdater'
     - function:
        name: 'MembershipAggregator'
        dependsOn:
@@ -172,7 +175,7 @@ stages:
       and(
         succeeded('Build_Common'),
         succeeded('Build_CopyParameters'),
-        eq(variables['Build.SourceBranch'], 'refs/heads/develop'),
+        in(variables['Build.SourceBranch'], 'refs/heads/develop', 'refs/heads/main'),
         in(variables['Build.Reason'], 'IndividualCI', 'Manual')
       )
 

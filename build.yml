@@ -1,0 +1,33 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+name: $(major).$(minor).$(Date:yyMM).$(Rev:r)
+
+trigger:
+- main
+
+pool:
+  vmImage: "windows-latest"
+
+variables:
+  major: '2'
+  minor: '0'
+
+stages:
+- stage: Build_TenantRepo
+
+  jobs:
+  - job: Build_TenantRepo
+
+    steps:
+    - checkout: self
+      persistCredentials: true
+
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet build DemoUserSetup'
+      retryCountOnTaskFailure: 1
+      inputs:
+        command: build
+        projects: 'Service/GroupMembershipManagement/Hosts/Console/DemoUserSetup/DemoUserSetup.csproj'
+        arguments: '--configuration release'

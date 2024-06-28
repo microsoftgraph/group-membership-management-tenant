@@ -3,7 +3,6 @@
 using Azure.Identity;
 using Microsoft.Graph;
 using System;
-using System.IO;
 using System.Threading.Tasks;
 
 namespace DemoUserSetup

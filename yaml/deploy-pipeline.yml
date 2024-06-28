@@ -7,8 +7,6 @@ parameters:
   type: string
 - name: subscriptionName
   type: string
-- name: keyVaultReaders
-  type: object
 - name: environmentAbbreviation
   type: string
 - name: location
@@ -58,7 +56,6 @@ stages:
                tenantId: ${{ parameters.tenantId }}
                subscriptionName: ${{ parameters.subscriptionName }}
                subscriptionId: ${{ parameters.subscriptionId }}
-               keyVaultReaders: ${{ parameters.keyVaultReaders }}
 
     - template: deploy-webapi.yml
       parameters:
@@ -262,5 +259,4 @@ stages:
             tenantId: ${{ parameters.tenantId }}
             subscriptionName: ${{ parameters.subscriptionName }}
             subscriptionId: ${{ parameters.subscriptionId }}
-            keyVaultReaders: ${{ parameters.keyVaultReaders }}
             stageName: ${{ parameters.stageName }}

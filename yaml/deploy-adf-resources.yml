@@ -7,7 +7,6 @@ parameters:
   tenantId: ''
   subscriptionId: ''
   subscriptionName: ''
-  keyVaultReaders: ''
 
 steps:
 
